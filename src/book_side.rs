@@ -8,8 +8,9 @@ pub struct BookSide {
 }
 
 impl BookSide {
-    pub fn new() -> BookSide {
-        BookSide { prices: RBMap::new() }
+    #[must_use]
+    pub fn new() -> Self {
+        Self { prices: RBMap::new() }
     }
 
     pub fn append(&mut self, order: Order) {
@@ -37,10 +38,12 @@ impl BookSide {
         outcome
     }
 
+    #[must_use]
     pub fn min(&self) -> Option<&PriceLevel> {
         self.prices.peek()
     }
 
+    #[must_use]
     pub fn max(&self) -> Option<&PriceLevel> {
         self.prices.peek_back()
     }
