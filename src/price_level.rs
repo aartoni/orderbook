@@ -74,6 +74,21 @@ mod tests {
     }
 
     #[test]
+    fn test_remove() {
+        let price = dec!(1.0);
+        let mut price_level = PriceLevel::new(price);
+        let first_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(1.0));
+        let second_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(2.0));
+
+        price_level.append(first_order);
+        price_level.append(second_order);
+        price_level.remove(first_order);
+
+        assert_eq!(price_level.volume, second_order.quantity);
+        assert_eq!(*price_level.front().unwrap(), second_order);
+    }
+
+    #[test]
     fn test_len() {
         let price = dec!(1.0);
         let mut price_level = PriceLevel::new(price);
