@@ -12,6 +12,7 @@ pub struct PriceLevel {
 }
 
 impl PriceLevel {
+    #[must_use]
     pub fn new(price: Decimal) -> Self {
         Self { volume: dec!(0), price, orders: VecDeque::new() }
     }
@@ -31,6 +32,7 @@ impl PriceLevel {
         None
     }
 
+    #[must_use]
     pub fn front(&self) -> Option<&Order> {
         self.orders.front()
     }

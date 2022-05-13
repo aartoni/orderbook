@@ -18,6 +18,7 @@ pub struct Order {
 }
 
 impl Order {
+    #[must_use]
     pub const fn new(id: u32, side: Side, timestamp: Instant, price: Decimal, quantity: Decimal) -> Self {
         Self { id, side, timestamp, price, quantity }
     }
