@@ -1,12 +1,10 @@
-use std::{cell::RefCell, rc::Rc};
-
 use rb_tree::RBMap;
 use rust_decimal::Decimal;
 
 use crate::{order::Order, price_level::PriceLevel};
 
 pub struct BookSide {
-    prices: RBMap<Decimal, Rc<RefCell<PriceLevel>>>,
+    prices: RBMap<Decimal, PriceLevel>,
 }
 
 impl BookSide {
@@ -15,24 +13,21 @@ impl BookSide {
     }
 
     pub fn append(&mut self, order: Order) {
-        let price_level;
-
-        if let Some(pl) = self.prices.get(&order.price) {
-            price_level = pl.clone();
-        } else {
-            price_level = Rc::new(RefCell::new(PriceLevel::new(order.price)));
-            self.prices.insert(order.price, price_level.clone());
+        if let Some(price_level) = self.prices.get_mut(&order.price) {
+            price_level.append(order);
+            return;
         }
 
-        let mut price_level = price_level.borrow_mut();
+        let mut price_level = PriceLevel::new(order.price);
         price_level.append(order);
+        self.prices.insert(order.price, price_level);
     }
 
-    pub fn min(&self) -> Option<&Rc<RefCell<PriceLevel>>> {
+    pub fn min(&self) -> Option<&PriceLevel> {
         self.prices.peek()
     }
 
-    pub fn max(&self) -> Option<&Rc<RefCell<PriceLevel>>> {
+    pub fn max(&self) -> Option<&PriceLevel> {
         self.prices.peek_back()
     }
 }
@@ -62,10 +57,10 @@ mod test {
         side.append(order);
 
         let first_pl = side.prices.get(&price).unwrap();
-        assert_eq!(*first_pl.borrow().front().unwrap(), order, "Order not appended");
+        assert_eq!(*first_pl.front().unwrap(), order, "Order not appended");
 
         let second_pl = side.prices.get(&price).unwrap();
-        assert_eq!(*first_pl.borrow(), *second_pl.borrow(), "Data inconsistency");
+        assert_eq!(*first_pl, *second_pl, "Data inconsistency");
     }
 
     #[test]
@@ -79,10 +74,10 @@ mod test {
         side.append(second_order);
 
         let first_pl = side.prices.get(&price).unwrap();
-        assert_eq!(*first_pl.borrow().front().unwrap(), first_order, "Order not appended");
+        assert_eq!(*first_pl.front().unwrap(), first_order, "Order not appended");
 
         let second_pl = side.prices.get(&price).unwrap();
-        assert_eq!(*first_pl.borrow(), *second_pl.borrow(), "Data inconsistency");
+        assert_eq!(*first_pl, *second_pl, "Data inconsistency");
     }
 
     #[test]
@@ -108,7 +103,7 @@ mod test {
         side.append(second_order);
         side.append(third_order);
 
-        assert_eq!(side.min().unwrap().borrow().price, dec!(1.0));
-        assert_eq!(side.max().unwrap().borrow().price, dec!(3.0));
+        assert_eq!(side.min().unwrap().price, dec!(1.0));
+        assert_eq!(side.max().unwrap().price, dec!(3.0));
     }
 }
