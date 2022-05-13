@@ -8,6 +8,7 @@ pub enum Side {
     Ask
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Order {
     pub id: u32,
     pub side: Side,
