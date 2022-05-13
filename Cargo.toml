@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 rust_decimal = "1.23"
 rust_decimal_macros = "1.23"
+rb_tree = { version = "0.5", default-features = false, features = ["map"] }
