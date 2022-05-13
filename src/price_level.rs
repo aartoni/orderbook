@@ -33,6 +33,11 @@ impl PriceLevel {
     }
 
     #[must_use]
+    pub fn len(&self) -> usize {
+        self.orders.len()
+    }
+
+    #[must_use]
     pub fn front(&self) -> Option<&Order> {
         self.orders.front()
     }
@@ -52,7 +57,7 @@ mod tests {
 
         assert_eq!(price_level.volume, dec!(0));
         assert_eq!(price_level.price, price);
-        assert_eq!(price_level.orders.len(), 0);
+        assert_eq!(price_level.len(), 0);
     }
 
     #[test]
