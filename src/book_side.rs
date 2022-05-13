@@ -59,4 +59,33 @@ mod test {
         let second_pl = side.prices.get(&price).unwrap();
         assert_eq!(*first_pl.borrow(), *second_pl.borrow(), "Data inconsistency");
     }
+
+    #[test]
+    fn test_append_not_empty() {
+        let mut side = BookSide::new();
+        let price = dec!(1.0);
+        let first_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(1.0));
+        let second_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(2.0));
+
+        side.append(first_order);
+        side.append(second_order);
+
+        let first_pl = side.prices.get(&price).unwrap();
+        assert_eq!(*first_pl.borrow().front().unwrap(), first_order, "Order not appended");
+
+        let second_pl = side.prices.get(&price).unwrap();
+        assert_eq!(*first_pl.borrow(), *second_pl.borrow(), "Data inconsistency");
+    }
+
+    #[test]
+    fn test_append_new_price_level() {
+        let mut side = BookSide::new();
+        let first_order = Order::new(1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
+        let second_order = Order::new(1, Side::Ask, Instant::now(), dec!(2.0), dec!(2.0));
+
+        side.append(first_order);
+        side.append(second_order);
+
+        assert_eq!(side.prices.len(), 2);
+    }
 }
