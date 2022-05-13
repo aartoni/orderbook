@@ -5,6 +5,7 @@ use rust_decimal_macros::dec;
 
 use crate::order::Order;
 
+#[derive(Debug, PartialEq)]
 pub struct PriceLevel {
     pub volume: Decimal,
     pub price: Decimal,
