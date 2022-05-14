@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{time::Instant, ops::Not};
 
 use rust_decimal::prelude::*;
 
@@ -6,6 +6,18 @@ use rust_decimal::prelude::*;
 pub enum Side {
     Bid,
     Ask
+}
+
+impl Not for Side {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        if self == Self::Ask {
+            Self::Bid
+        } else {
+            Self::Ask
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

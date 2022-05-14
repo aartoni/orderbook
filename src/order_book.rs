@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use rust_decimal::Decimal;
 
 use crate::{book_side::BookSide, order::{Order, Side}};
@@ -7,10 +9,11 @@ pub struct OrderBook {
     bids: BookSide,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum OrderOutcome {
-    Rejected,
-    Created,
-    TopOfBook,
+    Rejected { user_id: u32, user_order_id: u32 },
+    Created { user_id: u32, user_order_id: u32 },
+    TopOfBook { side: Side, price: Decimal, quantity: Decimal },
 }
 
 impl OrderBook {
@@ -30,7 +33,7 @@ impl OrderBook {
 
     #[must_use]
     pub fn best_bid_price(&self) -> Option<Decimal> {
-        if let Some(best_bid_price) = self.bids.min() {
+        if let Some(best_bid_price) = self.bids.max() {
             return Some(best_bid_price.price)
         }
 
@@ -39,9 +42,9 @@ impl OrderBook {
 
     fn get_side_mut(&mut self, side: Side) -> &mut BookSide {
         if side == Side::Ask {
-            return &mut self.asks;
+            &mut self.asks
         } else {
-            return &mut self.bids;
+            &mut self.bids
         }
     }
 
@@ -51,6 +54,55 @@ impl OrderBook {
 
     fn remove(&mut self, order: Order) {
         self.get_side_mut(order.side).remove(order);
+    }
+
+    fn get_best_for_side(&self, side: Side) -> Option<Decimal> {
+        if side == Side::Ask {
+            self.best_ask_price()
+        } else {
+            self.best_bid_price()
+        }
+    }
+
+    pub fn submit_order(&mut self, side: Side, price: Decimal, quantity: Decimal, user_id: u32, user_order_id: u32) -> OrderOutcome {
+        // Had to specify this type since Rust won't infer it
+        type Comparator = fn(&Decimal, &Decimal) -> bool;
+        type CmpTuple = (Comparator, Comparator);
+
+        // Get the best for the own and opposite side
+        let own_best = self.get_best_for_side(side);
+        let opp_best = self.get_best_for_side(!side);
+
+        // Get comparators for the own and opposite side
+        let (own_comparator, opp_comparator): CmpTuple = if side == Side::Ask {
+            (PartialOrd::lt, PartialOrd::le)
+        } else {
+            (PartialOrd::gt, PartialOrd::ge)
+        };
+
+        if let Some(best) = opp_best {
+            if opp_comparator(&price, &best) {
+                // This would cross the book
+                return OrderOutcome::Rejected { user_id: 1, user_order_id: 1 };
+            }
+        }
+
+        let order = Order { id: user_order_id, price, side, timestamp: Instant::now(), quantity };
+
+        if let Some(best) = own_best {
+            if own_comparator(&price, &best) {
+                // This is the new top of the book
+                self.append(order);
+                return OrderOutcome::TopOfBook { price, quantity, side };
+            }
+        } else {
+            // This is the first order on the side
+            self.append(order);
+            return OrderOutcome::TopOfBook { price, quantity, side };
+        }
+
+        self.append(order);
+        OrderOutcome::Created { user_id, user_order_id }
     }
 }
 
@@ -65,21 +117,70 @@ mod tests {
     fn test_get_best_ask_bid_prices() {
         let mut order_book = OrderBook::new();
 
-        let bid_price = dec!(1.0);
-        let ask_price = dec!(2.0);
-        let bid_order = Order::new(1, Side::Bid, Instant::now(), bid_price, dec!(1.0));
-        let ask_order = Order::new(1, Side::Ask, Instant::now(), ask_price, dec!(1.0));
+        let low_bid_price = dec!(1.0);
+        let high_bid_price = dec!(1.1);
+        let low_ask_price = dec!(2.0);
+        let high_ask_price = dec!(2.1);
+
+        order_book.append(Order::new(1, Side::Bid, Instant::now(), low_bid_price, dec!(1.0)));
+        order_book.append(Order::new(1, Side::Bid, Instant::now(), high_bid_price, dec!(1.0)));
+        order_book.append(Order::new(1, Side::Ask, Instant::now(), low_ask_price, dec!(1.0)));
+        order_book.append(Order::new(1, Side::Ask, Instant::now(), high_ask_price, dec!(1.0)));
+
+        assert_eq!(order_book.best_bid_price().unwrap(), high_bid_price);
+        assert_eq!(order_book.best_ask_price().unwrap(), low_ask_price);
+    }
+
+    #[test]
+    fn test_append_remove() {
+        let mut order_book = OrderBook::new();
+        let bid_order = Order::new(1, Side::Bid, Instant::now(), dec!(1.0), dec!(1.0));
+        let ask_order = Order::new(1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
 
         order_book.append(bid_order);
         order_book.append(ask_order);
-
-        assert_eq!(order_book.best_bid_price().unwrap(), bid_price);
-        assert_eq!(order_book.best_ask_price().unwrap(), ask_price);
 
         order_book.remove(bid_order);
         order_book.remove(ask_order);
 
         assert_eq!(order_book.best_bid_price(), None);
         assert_eq!(order_book.best_ask_price(), None);
+    }
+
+    #[test]
+    fn test_submit_order_created_and_top() {
+        let mut order_book = OrderBook::new();
+
+        let bid_price = dec!(1.0);
+        let ask_price = dec!(2.0);
+
+        let bid_outcome = order_book.submit_order(Side::Bid, bid_price, dec!(1.0), 1, 1);
+        let ask_outcome = order_book.submit_order(Side::Ask, ask_price, dec!(2.0), 1, 101);
+
+        assert_eq!(bid_outcome, OrderOutcome::TopOfBook { side: Side::Bid, price: bid_price, quantity: dec!(1.0) });
+        assert_eq!(ask_outcome, OrderOutcome::TopOfBook { side: Side::Ask, price: ask_price, quantity: dec!(2.0) });
+
+        assert_eq!(order_book.best_bid_price().unwrap(), bid_price);
+        assert_eq!(order_book.best_ask_price().unwrap(), ask_price);
+
+        let bid_outcome = order_book.submit_order(Side::Bid, dec!(0.9), dec!(1.0), 1, 2);
+        let ask_outcome = order_book.submit_order(Side::Ask, dec!(2.1), dec!(2.0), 1, 102);
+
+        assert_eq!(bid_outcome, OrderOutcome::Created { user_id: 1, user_order_id: 2 });
+        assert_eq!(ask_outcome, OrderOutcome::Created { user_id: 1, user_order_id: 102 });
+
+        assert_eq!(order_book.best_bid_price().unwrap(), bid_price);
+        assert_eq!(order_book.best_ask_price().unwrap(), ask_price);
+    }
+
+    #[test]
+    fn test_submit_order_rejected() {
+        let mut order_book = OrderBook::new();
+
+        let bid_outcome = order_book.submit_order(Side::Bid, dec!(2.0), dec!(2.0), 1, 101);
+        let ask_outcome = order_book.submit_order(Side::Ask, dec!(1.0), dec!(1.0), 1, 1);
+
+        assert_eq!(bid_outcome, OrderOutcome::TopOfBook { side: Side::Bid, price: dec!(2.0), quantity: dec!(2.0) });
+        assert_eq!(ask_outcome, OrderOutcome::Rejected { user_id: 1, user_order_id: 1 });
     }
 }
