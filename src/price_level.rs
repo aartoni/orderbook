@@ -110,6 +110,11 @@ mod tests {
         price_level.append(second_order);
 
         assert_eq!(price_level.len(), 2);
+
+        price_level.remove(first_order);
+        price_level.remove(second_order);
+
+        assert_eq!(price_level.len(), 0);
     }
 
 
@@ -153,5 +158,6 @@ mod tests {
         let outcome = price_level.trade(dec!(1.0));
 
         assert_eq!(outcome.unwrap(), first_order);
+        assert_eq!(price_level.len(), 1);
     }
 }
