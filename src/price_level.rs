@@ -42,6 +42,16 @@ impl PriceLevel {
     pub fn front(&self) -> Option<&Order> {
         self.orders.front()
     }
+
+    pub fn trade(&mut self, quantity: Decimal) -> Option<Order> {
+        for order in &self.orders {
+            if order.quantity == quantity {
+                return self.remove(*order);
+            }
+        }
+
+        None
+    }
 }
 
 #[cfg(test)]
@@ -79,7 +89,7 @@ mod tests {
         let price = dec!(1.0);
         let mut price_level = PriceLevel::new(price);
         let first_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(1.0));
-        let second_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(2.0));
+        let second_order = Order::new(2, Side::Ask, Instant::now(), price, dec!(2.0));
 
         price_level.append(first_order);
         price_level.append(second_order);
@@ -94,7 +104,7 @@ mod tests {
         let price = dec!(1.0);
         let mut price_level = PriceLevel::new(price);
         let first_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(1.0));
-        let second_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(2.0));
+        let second_order = Order::new(2, Side::Ask, Instant::now(), price, dec!(2.0));
 
         price_level.append(first_order);
         price_level.append(second_order);
@@ -108,11 +118,40 @@ mod tests {
         let price = dec!(1.0);
         let mut price_level = PriceLevel::new(price);
         let first_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(1.0));
-        let second_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(2.0));
+        let second_order = Order::new(2, Side::Ask, Instant::now(), price, dec!(2.0));
 
         price_level.append(first_order);
         price_level.append(second_order);
 
         assert_eq!(*price_level.front().unwrap(), first_order);
+    }
+
+    #[test]
+    fn test_trade() {
+        let price = dec!(1.0);
+        let mut price_level = PriceLevel::new(price);
+
+        let order = Order::new(1, Side::Ask, Instant::now(), price, dec!(1.0));
+        price_level.append(order);
+
+        let outcome = price_level.trade(dec!(1.0));
+
+        assert_eq!(outcome.unwrap(), order);
+    }
+
+    #[test]
+    fn test_trade_preserves_order() {
+        let price = dec!(1.0);
+        let mut price_level = PriceLevel::new(price);
+
+        let first_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(1.0));
+        let second_order = Order::new(2, Side::Ask, Instant::now(), price, dec!(1.0));
+
+        price_level.append(first_order);
+        price_level.append(second_order);
+
+        let outcome = price_level.trade(dec!(1.0));
+
+        assert_eq!(outcome.unwrap(), first_order);
     }
 }
