@@ -38,6 +38,20 @@ impl BookSide {
         outcome
     }
 
+    pub fn trade(&mut self, price: Decimal, quantity: Decimal) -> Option<Order> {
+        let mut outcome = None;
+
+        if let Some(price_level) = self.prices.get_mut(&price) {
+            outcome = price_level.trade(quantity);
+
+            if price_level.len() == 0 {
+                self.prices.remove(&price);
+            }
+        }
+
+        outcome
+    }
+
     #[must_use]
     pub fn min(&self) -> Option<&PriceLevel> {
         self.prices.peek()
@@ -147,5 +161,18 @@ mod test {
         side.remove(order);
 
         assert_eq!(side.prices.len(), 0);
+    }
+
+    #[test]
+    fn test_trade() {
+        let mut side = BookSide::new();
+        let order = Order::new(1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
+
+        side.append(order);
+        let outcome = side.trade(dec!(1.0), dec!(1.0));
+
+        assert_eq!(side.prices.get(&dec!(1.0)), None);
+        assert_eq!(side.prices.len(), 0);
+        assert_eq!(outcome.unwrap(), order);
     }
 }
