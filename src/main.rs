@@ -8,7 +8,7 @@ use orderbook::{OrderBook, order::Side};
 
 enum Command {
     New { user_id: u32, symbol: String, price: u32, quantity: u32, side: Side, order_id: u32 },
-    _Cancel { user_id: u32, order_id: u32 },
+    Cancel { user_id: u32, order_id: u32 },
     Flush,
     Unknown,
 }
@@ -73,7 +73,11 @@ fn parse_record(record: &StringRecord) -> Result<Command, Box<dyn Error + Send +
             price: record.get(3).unwrap().parse()?,
             quantity: record.get(4).unwrap().parse()?,
             side: parse_side(record.get(5).unwrap()),
-            order_id: record.get(6).unwrap().parse()?
+            order_id: record.get(6).unwrap().parse()?,
+        },
+        "C" => Command::Cancel {
+            user_id: record.get(1).unwrap().parse()?,
+            order_id: record.get(2).unwrap().parse()?,
         },
         _ => Command::Unknown
     };
