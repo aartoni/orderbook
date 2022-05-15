@@ -53,7 +53,7 @@ impl OrderBook {
         self.get_side_mut(order.side).append(order);
     }
 
-    fn remove(&mut self, order: Order) {
+    pub fn remove(&mut self, order: Order) {
         self.get_side_mut(order.side).remove(order);
     }
 
