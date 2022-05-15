@@ -1,7 +1,5 @@
 use std::{time::Instant, ops::Not};
 
-use rust_decimal::prelude::*;
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Side {
     Bid,
@@ -26,13 +24,13 @@ pub struct Order {
     pub user_id: u32,
     pub side: Side,
     pub timestamp: Instant,
-    pub price: Decimal,
-    pub quantity: Decimal,
+    pub price: u32,
+    pub quantity: u32,
 }
 
 impl Order {
     #[must_use]
-    pub const fn new(id: u32, user_id: u32, side: Side, timestamp: Instant, price: Decimal, quantity: Decimal) -> Self {
+    pub const fn new(id: u32, user_id: u32, side: Side, timestamp: Instant, price: u32, quantity: u32) -> Self {
         Self { id, user_id, side, timestamp, price, quantity }
     }
 }
@@ -40,15 +38,14 @@ impl Order {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_decimal_macros::dec;
 
     #[test]
     fn test_new_returns_order() {
         let id = 1;
         let user_id = 1;
         let side = Side::Ask;
-        let quantity = dec!(1.0);
-        let price = dec!(10.0);
+        let quantity = 1;
+        let price = 10;
         let timestamp = Instant::now();
 
         let order = Order { id, user_id, side, timestamp, price, quantity };
