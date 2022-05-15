@@ -68,31 +68,38 @@ impl OrderBook {
         self.get_side_mut(!side).trade(price, quantity)
     }
 
+    fn try_trade(&mut self, side: Side, price: u32, quantity: u32, user_id: u32, order_id: u32) -> Option<OrderOutcome> {
+        // Check whether there is a matching opposite order
+        if let Some(order) = self.trade(side, price, quantity) {
+            // Set buy and sell IDs according to the execution side
+            let ids = if order.side == Side::Ask {
+                (order.user_id, order.id, user_id, order_id)
+            } else {
+                (user_id, order_id, order.user_id, order.id)
+            };
+
+            let (user_id_buy, order_id_buy, user_id_sell, order_id_sell) = ids;
+            return Some(OrderOutcome::Traded {
+                user_id_buy,
+                order_id_buy,
+                user_id_sell,
+                order_id_sell,
+                price,
+                quantity
+            });
+        }
+
+        None
+    }
+
     pub fn submit_order(&mut self, side: Side, price: u32, quantity: u32, user_id: u32, order_id: u32) -> OrderOutcome {
         // Had to specify this type since Rust won't infer it
         type Comparator = fn(&u32, &u32) -> bool;
         type CmpTuple = (Comparator, Comparator);
 
-        // Check whether there is a matching opposite order
-        if let Some(order) = self.trade(side, price, quantity) {
-            // Set buy and sell IDs according to the execution side
-            if order.side == Side::Ask {
-                return OrderOutcome::Traded {
-                    user_id_buy: order.user_id,
-                    order_id_buy: order.id,
-                    user_id_sell: user_id,
-                    order_id_sell: order_id,
-                    price, quantity,
-                }
-            }
-
-            return OrderOutcome::Traded {
-                user_id_buy: user_id,
-                order_id_buy: order_id,
-                user_id_sell: order.user_id,
-                order_id_sell: order.id,
-                price, quantity,
-            }
+        // Try to trade the current order
+        if let Some(outcome) = self.try_trade(side, price, quantity, user_id, order_id) {
+            return outcome;
         }
 
         // Get the best for the own and opposite side
