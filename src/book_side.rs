@@ -83,7 +83,7 @@ mod test {
     fn test_append_empty() {
         let mut side = BookSide::new();
         let price = dec!(1.0);
-        let order = Order::new(1, Side::Ask, Instant::now(), price, dec!(1.0));
+        let order = Order::new(1, 1, Side::Ask, Instant::now(), price, dec!(1.0));
 
         side.append(order);
 
@@ -98,8 +98,8 @@ mod test {
     fn test_append_not_empty() {
         let mut side = BookSide::new();
         let price = dec!(1.0);
-        let first_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(1.0));
-        let second_order = Order::new(1, Side::Ask, Instant::now(), price, dec!(2.0));
+        let first_order = Order::new(1, 1, Side::Ask, Instant::now(), price, dec!(1.0));
+        let second_order = Order::new(1, 1, Side::Ask, Instant::now(), price, dec!(2.0));
 
         side.append(first_order);
         side.append(second_order);
@@ -114,8 +114,8 @@ mod test {
     #[test]
     fn test_append_new_price_level() {
         let mut side = BookSide::new();
-        let first_order = Order::new(1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
-        let second_order = Order::new(1, Side::Ask, Instant::now(), dec!(2.0), dec!(2.0));
+        let first_order = Order::new(1, 1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
+        let second_order = Order::new(1, 1, Side::Ask, Instant::now(), dec!(2.0), dec!(2.0));
 
         side.append(first_order);
         side.append(second_order);
@@ -126,9 +126,9 @@ mod test {
     #[test]
     fn test_min_max() {
         let mut side = BookSide::new();
-        let first_order = Order::new(1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
-        let second_order = Order::new(1, Side::Ask, Instant::now(), dec!(2.0), dec!(2.0));
-        let third_order = Order::new(1, Side::Ask, Instant::now(), dec!(3.0), dec!(3.0));
+        let first_order = Order::new(1, 1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
+        let second_order = Order::new(1, 1, Side::Ask, Instant::now(), dec!(2.0), dec!(2.0));
+        let third_order = Order::new(1, 1, Side::Ask, Instant::now(), dec!(3.0), dec!(3.0));
 
         side.append(first_order);
         side.append(second_order);
@@ -141,8 +141,8 @@ mod test {
     #[test]
     fn test_remove() {
         let mut side = BookSide::new();
-        let first_order = Order::new(1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
-        let second_order = Order::new(1, Side::Ask, Instant::now(), dec!(2.0), dec!(2.0));
+        let first_order = Order::new(1, 1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
+        let second_order = Order::new(1, 1, Side::Ask, Instant::now(), dec!(2.0), dec!(2.0));
 
         side.append(first_order);
         side.append(second_order);
@@ -155,7 +155,7 @@ mod test {
     #[test]
     fn test_remove_last() {
         let mut side = BookSide::new();
-        let order = Order::new(1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
+        let order = Order::new(1, 1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
 
         side.append(order);
         side.remove(order);
@@ -166,7 +166,7 @@ mod test {
     #[test]
     fn test_trade() {
         let mut side = BookSide::new();
-        let order = Order::new(1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
+        let order = Order::new(1, 1, Side::Ask, Instant::now(), dec!(1.0), dec!(1.0));
 
         side.append(order);
         let outcome = side.trade(dec!(1.0), dec!(1.0));

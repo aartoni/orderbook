@@ -23,6 +23,7 @@ impl Not for Side {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Order {
     pub id: u32,
+    pub user_id: u32,
     pub side: Side,
     pub timestamp: Instant,
     pub price: Decimal,
@@ -31,8 +32,8 @@ pub struct Order {
 
 impl Order {
     #[must_use]
-    pub const fn new(id: u32, side: Side, timestamp: Instant, price: Decimal, quantity: Decimal) -> Self {
-        Self { id, side, timestamp, price, quantity }
+    pub const fn new(id: u32, user_id: u32, side: Side, timestamp: Instant, price: Decimal, quantity: Decimal) -> Self {
+        Self { id, user_id, side, timestamp, price, quantity }
     }
 }
 
@@ -44,12 +45,13 @@ mod tests {
     #[test]
     fn test_new_returns_order() {
         let id = 1;
+        let user_id = 1;
         let side = Side::Ask;
         let quantity = dec!(1.0);
         let price = dec!(10.0);
         let timestamp = Instant::now();
 
-        let order = Order { id, side, timestamp, price, quantity };
+        let order = Order { id, user_id, side, timestamp, price, quantity };
 
         assert_eq!(order.id, id);
         assert_eq!(order.side, side);
