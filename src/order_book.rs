@@ -85,15 +85,15 @@ impl OrderBook {
                     order_id_sell: order_id,
                     price, quantity,
                 }
-            } else {
-                return OrderOutcome::Traded {
-                    user_id_buy: user_id,
-                    order_id_buy: order_id,
-                    user_id_sell: order.user_id,
-                    order_id_sell: order.id,
-                    price, quantity,
-                }
-            };
+            }
+
+            return OrderOutcome::Traded {
+                user_id_buy: user_id,
+                order_id_buy: order_id,
+                user_id_sell: order.user_id,
+                order_id_sell: order.id,
+                price, quantity,
+            }
         }
 
         // Get the best for the own and opposite side
