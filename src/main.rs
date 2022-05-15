@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::{fs::File, collections::HashMap};
 use std::sync::mpsc;
 use std::thread;
@@ -12,14 +13,14 @@ enum Command {
     Unknown,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     // Get three communication channels
     let (to_worker, from_reader) = mpsc::channel();
     let (to_reader, from_worker) = mpsc::channel();
 
     // Get the CSV reader
     let file_path = "input_files/scenario_1.csv";
-    let file = File::open(file_path).expect("Unable to open the input file");
+    let file = File::open(file_path)?;
     let mut reader = ReaderBuilder::new()
         .trim(Trim::All)
         .flexible(true)
@@ -43,7 +44,7 @@ fn main() {
     // The main thread will act as the worker thread and
     // compute commands received from the reader
     while let Ok(command) = from_reader.recv() {
-        match command {
+        match command? {
             Command::Flush => {
                 order_books = HashMap::new();
                 println!("Book flushed");
@@ -59,21 +60,25 @@ fn main() {
         println!("Worker writes");
         to_reader.send(()).unwrap();
     }
+
+    Ok(())
 }
 
-fn parse_record(record: &StringRecord) -> Command {
-    match record.get(0).unwrap() {
+fn parse_record(record: &StringRecord) -> Result<Command, Box<dyn Error + Send + Sync>> {
+    let command = match record.get(0).unwrap() {
         "F" => Command::Flush,
         "N" => Command::New {
-            user_id: record.get(1).unwrap().parse().unwrap(),
+            user_id: record.get(1).unwrap().parse()?,
             symbol: record.get(2).unwrap().to_string(),
-            price: record.get(3).unwrap().parse().unwrap(),
-            quantity: record.get(4).unwrap().parse().unwrap(),
+            price: record.get(3).unwrap().parse()?,
+            quantity: record.get(4).unwrap().parse()?,
             side: parse_side(record.get(5).unwrap()),
-            order_id: record.get(6).unwrap().parse().unwrap()
+            order_id: record.get(6).unwrap().parse()?
         },
         _ => Command::Unknown
-    }
+    };
+
+    Ok(command)
 }
 
 fn parse_side(csv_side: &str) -> Side {
