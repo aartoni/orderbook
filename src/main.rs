@@ -1,10 +1,11 @@
 use std::error::Error;
 use std::{fs::File, collections::HashMap};
-use std::sync::mpsc;
+use std::sync::mpsc::{self, Sender, Receiver};
 use std::thread;
 
 use csv::{ReaderBuilder, StringRecord, Trim};
 use orderbook::{OrderBook, order::Side};
+use orderbook::OrderOutcome;
 
 enum Command {
     New { user_id: u32, symbol: String, price: u32, quantity: u32, side: Side, order_id: u32 },
@@ -14,9 +15,17 @@ enum Command {
 }
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    // Get three communication channels
-    let (to_worker, from_reader) = mpsc::channel();
-    let (to_reader, from_worker) = mpsc::channel();
+    // Specify the writer channel type
+    type WriterTarget = Option<OrderOutcome>;
+    type WriterChannel = (Sender<WriterTarget>, Receiver<WriterTarget>);
+
+    // Get two communication channels (reader<->worker)
+    let (reader_to_worker, from_reader) = mpsc::channel();
+    let (to_reader, reader_from_worker) = mpsc::channel();
+
+    // Get two communication channels (worker<->writer)
+    let (writer_to_worker, from_writer) = mpsc::channel();
+    let (to_writer, writer_from_worker): WriterChannel = mpsc::channel();
 
     // Get the CSV reader
     let file_path = "input_files/scenario_1.csv";
@@ -32,9 +41,33 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     thread::spawn(move || {
         for result in reader.records() {
             let record = result.expect("Broken record");
-            println!("{record:?}");
-            to_worker.send(parse_record(&record)).unwrap();
-            from_worker.recv().unwrap();
+            reader_to_worker.send(parse_record(&record)).unwrap();
+            reader_from_worker.recv().unwrap();
+        }
+    });
+
+    // Spawn the writer thread
+    thread::spawn(move || {
+        writer_to_worker.send(()).unwrap();
+
+        while let Ok(outcome) = writer_from_worker.recv() {
+            writer_to_worker.send(()).unwrap();
+
+            if outcome == None {
+                continue;
+            }
+
+            match outcome.unwrap() {
+                OrderOutcome::Created { user_id, order_id } => {
+                    println!("A, {user_id}, {order_id}");
+                },
+                OrderOutcome::TopOfBook { user_id, order_id, side, price, quantity } => {
+                    println!("A, {user_id}, {order_id}");
+                    let side = parse_side_to_csv(side);
+                    println!("B, {side}, {price}, {quantity}");
+                },
+                _ => println!("Unknown output format"),
+            };
         }
     });
 
@@ -44,21 +77,22 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     // The main thread will act as the worker thread and
     // compute commands received from the reader
     while let Ok(command) = from_reader.recv() {
-        match command? {
+        to_reader.send(()).unwrap();
+
+        let outcome = match command? {
             Command::Flush => {
                 order_books = HashMap::new();
-                println!("Book flushed");
+                None
             },
             Command::New {user_id, order_id, side, price, quantity, symbol} => {
                 let order_book = order_books.entry(symbol).or_insert_with(OrderBook::new);
-                let outcome = order_book.submit_order(side, price, quantity, user_id, order_id);
-                println!("Submitted order: {outcome:?}");
+                Some(order_book.submit_order(side, price, quantity, user_id, order_id))
             },
-            _ => println!("Unknown command")
-        }
+            _ => panic!("Unknown command")
+        };
 
-        println!("Worker writes");
-        to_reader.send(()).unwrap();
+        from_writer.recv().unwrap();
+        to_writer.send(outcome).unwrap();
     }
 
     Ok(())
@@ -72,7 +106,7 @@ fn parse_record(record: &StringRecord) -> Result<Command, Box<dyn Error + Send +
             symbol: record.get(2).unwrap().to_string(),
             price: record.get(3).unwrap().parse()?,
             quantity: record.get(4).unwrap().parse()?,
-            side: parse_side(record.get(5).unwrap()),
+            side: parse_side_from_csv(record.get(5).unwrap()),
             order_id: record.get(6).unwrap().parse()?,
         },
         "C" => Command::Cancel {
@@ -85,10 +119,18 @@ fn parse_record(record: &StringRecord) -> Result<Command, Box<dyn Error + Send +
     Ok(command)
 }
 
-fn parse_side(csv_side: &str) -> Side {
+fn parse_side_from_csv(csv_side: &str) -> Side {
     if csv_side == "B" {
         Side::Bid
     } else {
         Side::Ask
+    }
+}
+
+fn parse_side_to_csv(side: Side) -> &'static str {
+    if side == Side::Bid {
+        "B"
+    } else {
+        "S"
     }
 }

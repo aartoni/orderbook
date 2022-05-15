@@ -11,7 +11,7 @@ pub struct OrderBook {
 pub enum OrderOutcome {
     Rejected { user_id: u32, order_id: u32 },
     Created { user_id: u32, order_id: u32 },
-    TopOfBook { side: Side, price: u32, quantity: u32 },
+    TopOfBook { user_id: u32, order_id: u32, side: Side, price: u32, quantity: u32 },
     Traded { user_id_buy: u32, order_id_buy: u32, user_id_sell: u32, order_id_sell: u32, price: u32, quantity: u32 },
 }
 
@@ -118,12 +118,12 @@ impl OrderBook {
             if own_comparator(&price, &best) {
                 // This is the new top of the book
                 self.append(order);
-                return OrderOutcome::TopOfBook { price, quantity, side };
+                return OrderOutcome::TopOfBook { user_id, order_id, price, quantity, side };
             }
         } else {
             // This is the first order on the side
             self.append(order);
-            return OrderOutcome::TopOfBook { price, quantity, side };
+            return OrderOutcome::TopOfBook { user_id, order_id, price, quantity, side };
         }
 
         self.append(order);
@@ -181,8 +181,8 @@ mod tests {
         let bid_outcome = order_book.submit_order(Side::Bid, bid_price, 1, 1, 1);
         let ask_outcome = order_book.submit_order(Side::Ask, ask_price, 2, 1, 101);
 
-        assert_eq!(bid_outcome, OrderOutcome::TopOfBook { side: Side::Bid, price: bid_price, quantity: 1 });
-        assert_eq!(ask_outcome, OrderOutcome::TopOfBook { side: Side::Ask, price: ask_price, quantity: 2 });
+        assert_eq!(bid_outcome, OrderOutcome::TopOfBook { user_id: 1, order_id: 1, side: Side::Bid, price: bid_price, quantity: 1 });
+        assert_eq!(ask_outcome, OrderOutcome::TopOfBook { user_id: 1, order_id: 101, side: Side::Ask, price: ask_price, quantity: 2 });
 
         assert_eq!(order_book.best_bid_price().unwrap(), bid_price);
         assert_eq!(order_book.best_ask_price().unwrap(), ask_price);
@@ -204,7 +204,7 @@ mod tests {
         let bid_outcome = order_book.submit_order(Side::Bid, 2, 2, 1, 101);
         let ask_outcome = order_book.submit_order(Side::Ask, 1, 1, 1, 1);
 
-        assert_eq!(bid_outcome, OrderOutcome::TopOfBook { side: Side::Bid, price: 2, quantity: 2 });
+        assert_eq!(bid_outcome, OrderOutcome::TopOfBook { user_id: 1, order_id: 101, side: Side::Bid, price: 2, quantity: 2 });
         assert_eq!(ask_outcome, OrderOutcome::Rejected { user_id: 1, order_id: 1 });
     }
 
