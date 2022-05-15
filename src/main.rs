@@ -54,6 +54,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             writer_to_worker.send(()).unwrap();
 
             if outcome == None {
+                // Last command was a flush
                 continue;
             }
 
