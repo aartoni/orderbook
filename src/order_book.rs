@@ -23,6 +23,11 @@ impl OrderBook {
         Self { asks: BookSide::new(), bids: BookSide::new() }
     }
 
+    pub fn flush(&mut self) {
+        self.asks = BookSide::new();
+        self.bids = BookSide::new();
+    }
+
     #[must_use]
     pub fn best_ask_price(&self) -> Option<Decimal> {
         if let Some(best_ask_price) = self.asks.min() {

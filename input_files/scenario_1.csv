@@ -1,0 +1,17 @@
+#name: scenario 1
+#descr:balanced book
+
+# build book, TOB = 10/11
+N, 1, IBM, 10, 100, B, 1
+N, 1, IBM, 12, 100, S, 2
+N, 2, IBM, 9, 100, B, 101
+N, 2, IBM, 11, 100, S, 102
+
+# hit book on each side, generate reject
+N, 1, IBM, 11, 100, B, 3
+N, 2, IBM, 10, 100, S, 103
+
+# replenish book on each side, TOB = 10/11
+N, 1, IBM, 10, 100, B, 4
+N, 2, IBM, 11, 100, S, 104
+F
