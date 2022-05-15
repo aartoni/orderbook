@@ -56,9 +56,8 @@ fn main() {
 }
 
 fn parse_record(record: StringRecord) -> Command {
-    if record.get(0).unwrap() == "F" {
-        return Command::Flush;
+    match record.get(0).unwrap() {
+        "F" => Command::Flush,
+        _ => Command::Unknown
     }
-
-    Command::Unknown
 }
