@@ -93,10 +93,6 @@ impl OrderBook {
     }
 
     pub fn submit_order(&mut self, side: Side, price: u32, quantity: u32, user_id: u32, order_id: u32) -> OrderOutcome {
-        // Had to specify this type since Rust won't infer it
-        type Comparator = fn(&u32, &u32) -> bool;
-        type CmpTuple = (Comparator, Comparator);
-
         // Try to trade the current order
         if let Some(outcome) = self.try_trade(side, price, quantity, user_id, order_id) {
             return outcome;
@@ -107,14 +103,14 @@ impl OrderBook {
         let opp_best = self.get_best_for_side(!side);
 
         // Get comparators for the own and opposite side
-        let (own_comparator, opp_comparator): CmpTuple = if side == Side::Ask {
-            (PartialOrd::lt, PartialOrd::le)
+        let comparator = if side == Side::Ask {
+            PartialOrd::le
         } else {
-            (PartialOrd::gt, PartialOrd::ge)
+            PartialOrd::ge
         };
 
         if let Some(best) = opp_best {
-            if opp_comparator(&price, &best) {
+            if comparator(&price, &best) {
                 // This would cross the book
                 return OrderOutcome::Rejected { user_id, order_id };
             }
@@ -123,7 +119,7 @@ impl OrderBook {
         let order = Order { id: order_id, user_id, price, side, timestamp: Instant::now(), quantity };
 
         if let Some(best) = own_best {
-            if own_comparator(&price, &best) {
+            if comparator(&price, &best) {
                 // This is the new top of the book
                 let (top_price, volume) = self.append(order);
                 return OrderOutcome::TopOfBook { user_id, order_id, top_price, volume, side };
