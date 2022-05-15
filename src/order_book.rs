@@ -116,7 +116,7 @@ impl OrderBook {
         if let Some(best) = opp_best {
             if opp_comparator(&price, &best) {
                 // This would cross the book
-                return OrderOutcome::Rejected { user_id: 1, order_id: 1 };
+                return OrderOutcome::Rejected { user_id, order_id };
             }
         }
 

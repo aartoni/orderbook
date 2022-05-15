@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let (to_writer, writer_from_worker): WriterChannel = mpsc::channel();
 
     // Get the CSV reader
-    let file_path = "input_files/scenario_13.csv";
+    let file_path = "input_files/scenario_1.csv";
     let file = File::open(file_path)?;
     let mut reader = ReaderBuilder::new()
         .trim(Trim::All)
@@ -73,6 +73,9 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                     };
                     println!("B, {side}, {top_price}, {volume}");
                 },
+                OrderOutcome::Rejected { user_id, order_id } => {
+                    println!("R, {user_id}, {order_id}");
+                }
                 _ => println!("Unknown output format"),
             };
         }
