@@ -12,15 +12,15 @@ impl BookSide {
         Self { prices: RBMap::new() }
     }
 
-    pub fn append(&mut self, order: Order) {
+    pub fn append(&mut self, order: Order) -> u32 {
         if let Some(price_level) = self.prices.get_mut(&order.price) {
-            price_level.append(order);
-            return;
+            return price_level.append(order);
         }
 
         let mut price_level = PriceLevel::new(order.price);
-        price_level.append(order);
+        let volume = price_level.append(order);
         self.prices.insert(order.price, price_level);
+        volume
     }
 
     pub fn remove(&mut self, order: Order) -> Option<Order> {

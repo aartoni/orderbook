@@ -15,9 +15,10 @@ impl PriceLevel {
         Self { volume: 0, price, orders: VecDeque::new() }
     }
 
-    pub fn append(&mut self, order: Order) {
+    pub fn append(&mut self, order: Order) -> u32 {
         self.volume += order.quantity;
         self.orders.push_back(order);
+        self.volume
     }
 
     pub fn remove(&mut self, order: Order) -> Option<Order> {
