@@ -1,12 +1,12 @@
-use std::fs::File;
+use std::{fs::File, collections::HashMap};
 use std::sync::mpsc;
 use std::thread;
 
-use csv::{ReaderBuilder, StringRecord};
-use orderbook::OrderBook;
+use csv::{ReaderBuilder, StringRecord, Trim};
+use orderbook::{OrderBook, order::Side};
 
 enum Command {
-    _New { user_id: u32, symbol: String, price: u32, quantity: u32, order_id: u32 },
+    New { user_id: u32, symbol: String, price: u32, quantity: u32, side: Side, order_id: u32 },
     _Cancel { user_id: u32, order_id: u32 },
     Flush,
     Unknown,
@@ -21,6 +21,7 @@ fn main() {
     let file_path = "input_files/scenario_1.csv";
     let file = File::open(file_path).expect("Unable to open the input file");
     let mut reader = ReaderBuilder::new()
+        .trim(Trim::All)
         .flexible(true)
         .has_headers(false)
         .comment(Some(b'#'))
@@ -31,21 +32,26 @@ fn main() {
         for result in reader.records() {
             let record = result.expect("Broken record");
             println!("{record:?}");
-            to_worker.send(parse_record(record)).unwrap();
+            to_worker.send(parse_record(&record)).unwrap();
             from_worker.recv().unwrap();
         }
     });
 
-    // Build the order book
-    let mut order_book = OrderBook::new();
+    // Build the order books collection
+    let mut order_books = HashMap::new();
 
     // The main thread will act as the worker thread and
     // compute commands received from the reader
     while let Ok(command) = from_reader.recv() {
         match command {
             Command::Flush => {
-                order_book.flush();
-                println!("Book flushed")
+                order_books = HashMap::new();
+                println!("Book flushed");
+            },
+            Command::New {user_id, order_id, side, price, quantity, symbol} => {
+                let order_book = order_books.entry(symbol).or_insert_with(OrderBook::new);
+                let outcome = order_book.submit_order(side, price, quantity, user_id, order_id);
+                println!("Submitted order: {outcome:?}");
             },
             _ => println!("Unknown command")
         }
@@ -55,9 +61,25 @@ fn main() {
     }
 }
 
-fn parse_record(record: StringRecord) -> Command {
+fn parse_record(record: &StringRecord) -> Command {
     match record.get(0).unwrap() {
         "F" => Command::Flush,
+        "N" => Command::New {
+            user_id: record.get(1).unwrap().parse().unwrap(),
+            symbol: record.get(2).unwrap().to_string(),
+            price: record.get(3).unwrap().parse().unwrap(),
+            quantity: record.get(4).unwrap().parse().unwrap(),
+            side: parse_side(record.get(5).unwrap()),
+            order_id: record.get(6).unwrap().parse().unwrap()
+        },
         _ => Command::Unknown
+    }
+}
+
+fn parse_side(csv_side: &str) -> Side {
+    if csv_side == "B" {
+        Side::Bid
+    } else {
+        Side::Ask
     }
 }
