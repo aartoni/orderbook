@@ -46,7 +46,11 @@ impl PriceLevel {
     pub fn trade(&mut self, quantity: Decimal) -> Option<Order> {
         for order in &self.orders {
             if order.quantity == quantity {
-                return self.remove(*order);
+                // Matching order found
+                // Note: the following two lines are required to avoid
+                // the annoying mutable borrow reservaton conflict
+                let target = *order;
+                return self.remove(target)
             }
         }
 
