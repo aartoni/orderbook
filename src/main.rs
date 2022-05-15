@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .from_reader(file);
 
     // Spawn the reader thread
-    thread::spawn(move || {
+    let reader_thread = thread::spawn(move || {
         for result in reader.records() {
             let record = result.expect("Broken record");
             reader_to_worker.send(parse_record(&record)).unwrap();
@@ -47,7 +47,8 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     });
 
     // Spawn the writer thread
-    thread::spawn(move || {
+    let writer_thread = thread::spawn(move || {
+        // Start the worker
         writer_to_worker.send(()).unwrap();
 
         while let Ok(outcome) = writer_from_worker.recv() {
@@ -58,26 +59,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                 continue;
             }
 
-            match outcome.unwrap() {
-                OrderOutcome::Created { user_id, order_id } => {
-                    println!("A, {user_id}, {order_id}");
-                },
-                OrderOutcome::TopOfBook { user_id, order_id, side, top_price, volume } => {
-                    println!("A, {user_id}, {order_id}");
-
-                    let side = parse_side_to_csv(side);
-                    let top_price = if let Some(price) = top_price {
-                        price.to_string()
-                    } else {
-                        String::from("-")
-                    };
-                    println!("B, {side}, {top_price}, {volume}");
-                },
-                OrderOutcome::Rejected { user_id, order_id } => {
-                    println!("R, {user_id}, {order_id}");
-                }
-                _ => println!("Unknown output format"),
-            };
+            print_outcome(outcome.unwrap());
         }
     });
 
@@ -104,6 +86,11 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         from_writer.recv().unwrap();
         to_writer.send(outcome).unwrap();
     }
+
+    // Ensure that all the threads have ended
+    drop(to_writer);
+    writer_thread.join().unwrap();
+    reader_thread.join().unwrap();
 
     Ok(())
 }
@@ -143,4 +130,27 @@ fn parse_side_to_csv(side: Side) -> &'static str {
     } else {
         "S"
     }
+}
+
+fn print_outcome(outcome: OrderOutcome) {
+    match outcome {
+        OrderOutcome::Created { user_id, order_id } => {
+            println!("A, {user_id}, {order_id}");
+        },
+        OrderOutcome::TopOfBook { user_id, order_id, side, top_price, volume } => {
+            println!("A, {user_id}, {order_id}");
+
+            let side = parse_side_to_csv(side);
+            let top_price = if let Some(price) = top_price {
+                price.to_string()
+            } else {
+                String::from("-")
+            };
+            println!("B, {side}, {top_price}, {volume}");
+        },
+        OrderOutcome::Rejected { user_id, order_id } => {
+            println!("R, {user_id}, {order_id}");
+        }
+        _ => println!("Unknown output format"),
+    };
 }
