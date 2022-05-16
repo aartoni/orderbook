@@ -1,16 +1,25 @@
 use std::error::Error;
-use std::{fs::File, collections::HashMap};
-use std::sync::mpsc::{self, Sender, Receiver};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
+use std::{collections::HashMap, fs::File};
 
 use csv::{ReaderBuilder, StringRecord, Trim};
-use orderbook::{OrderBook, order::Side};
 use orderbook::OrderOutcome;
+use orderbook::{order::Side, OrderBook};
 
 /// Representation of the three commands that can be read from the input file
 enum Command {
-    New { user_id: u32, symbol: String, price: u32, quantity: u32, side: Side, order_id: u32 },
-    Cancel { order_id: u32 },
+    New {
+        user_id: u32,
+        symbol: String,
+        price: u32,
+        quantity: u32,
+        side: Side,
+        order_id: u32,
+    },
+    Cancel {
+        order_id: u32,
+    },
     Flush,
 }
 
@@ -80,18 +89,18 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             Command::Flush => {
                 order_books = HashMap::new();
                 None
-            },
-            Command::New {user_id, order_id, side, price, quantity, symbol} => {
+            }
+            Command::New { user_id, order_id, side, price, quantity, symbol } => {
                 let symbol_clone = symbol.clone();
                 let order_book = order_books.entry(symbol).or_insert_with(OrderBook::new);
                 order_symbols.insert(order_id, symbol_clone);
                 Some(order_book.submit_order(side, price, quantity, user_id, order_id))
-            },
+            }
             Command::Cancel { order_id, .. } => {
                 let symbol = order_symbols.get(&order_id).unwrap();
                 let order_book = order_books.get_mut(symbol).unwrap();
                 Some(order_book.cancel_order(order_id))
-            },
+            }
         };
 
         from_writer.recv().unwrap();
@@ -117,9 +126,7 @@ fn parse_record(record: &StringRecord) -> Result<Command, Box<dyn Error + Send +
             side: parse_side_from_csv(record.get(5).unwrap()),
             order_id: record.get(6).unwrap().parse()?,
         },
-        "C" => Command::Cancel {
-            order_id: record.get(2).unwrap().parse()?,
-        },
+        "C" => Command::Cancel { order_id: record.get(2).unwrap().parse()? },
         _ => Command::Flush,
     };
 
@@ -149,7 +156,7 @@ fn print_outcome(outcome: &OrderOutcome) {
     match outcome {
         OrderOutcome::Created { user_id, order_id } => {
             println!("A, {user_id}, {order_id}");
-        },
+        }
         OrderOutcome::TopOfBook { user_id, order_id, side, top_price, volume } => {
             println!("A, {user_id}, {order_id}");
 
@@ -157,11 +164,23 @@ fn print_outcome(outcome: &OrderOutcome) {
             let top_price = top_price.map_or_else(|| String::from("-"), |price| price.to_string());
             let volume = volume.map_or_else(|| String::from("-"), |price| price.to_string());
             println!("B, {side}, {top_price}, {volume}");
-        },
+        }
         OrderOutcome::Rejected { user_id, order_id } => {
             println!("R, {user_id}, {order_id}");
         }
-        OrderOutcome::Traded { user_id, order_id, user_id_buy, order_id_buy, user_id_sell, order_id_sell, price, quantity, side, top_price, volume } => {
+        OrderOutcome::Traded {
+            user_id,
+            order_id,
+            user_id_buy,
+            order_id_buy,
+            user_id_sell,
+            order_id_sell,
+            price,
+            quantity,
+            side,
+            top_price,
+            volume,
+        } => {
             println!("A, {user_id}, {order_id}");
             println!("T, {user_id_buy}, {order_id_buy}, {user_id_sell}, {order_id_sell}, {price}, {quantity}");
             if let Some(side) = side {
@@ -170,6 +189,6 @@ fn print_outcome(outcome: &OrderOutcome) {
                 let volume = volume.map_or(String::from("-"), |v| v.to_string());
                 println!("B, {side}, {top_price}, {volume}");
             }
-        },
+        }
     };
 }
