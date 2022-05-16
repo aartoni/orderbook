@@ -3,6 +3,8 @@ name = "orderbook"
 version = "0.1.0"
 authors = ["Alessio Artoni <alessio@artoni.org>"]
 edition = "2018"
+# MSRV is because of format strings
+rust = "1.58"
 
 [dependencies]
 csv = "1.1"
