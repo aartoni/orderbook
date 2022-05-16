@@ -23,16 +23,14 @@ impl BookSide {
         volume
     }
 
-    pub fn remove(&mut self, order: Order) -> u32 {
+    pub fn remove(&mut self, order: Order) {
         let price_level = self.prices.get_mut(&order.price).unwrap();
 
-        let volume = price_level.remove(order);
+        price_level.remove(order);
 
         if price_level.len() == 0 {
             self.prices.remove(&order.price);
         }
-
-        volume
     }
 
     pub fn trade(&mut self, price: u32, quantity: u32) -> Option<Order> {

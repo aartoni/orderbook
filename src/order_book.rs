@@ -85,9 +85,9 @@ impl OrderBook {
         OrderOutcome::TopOfBook { user_id: order.user_id, order_id, side, top_price, volume }
     }
 
-    fn remove(&mut self, order: Order) -> u32 {
+    fn remove(&mut self, order: Order) {
         self.orders.remove(&order.id);
-        self.get_side_mut(order.side).remove(order)
+        self.get_side_mut(order.side).remove(order);
     }
 
     fn get_cmp_for_side(side: Side) -> fn(&u32, &u32) -> bool {

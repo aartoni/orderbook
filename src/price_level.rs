@@ -16,7 +16,8 @@ impl PriceLevel {
         Self { volume: 0, price, orders: VecDeque::new() }
     }
 
-    /// Appends an element to the back of the queue and updates the volume accordingly. This method has *O*(1) complexity.
+    /// Appends an element to the back of the queue and updates the volume
+    /// accordingly. This method has *O*(1) complexity.
     ///
     /// # Example
     /// ```
@@ -37,10 +38,9 @@ impl PriceLevel {
         self.volume
     }
 
-    /// Removes and order from the queue, this method assumes that the order is already present as a pre-condition.
-    ///
-    /// # Panics
-    /// The remove method always panics if the `order` argument can't be found in the queue.
+    /// Removes and order from the queue, and update the volume accordingly.
+    /// This method has *O*(*n*) complexity, where *n* is the length of the
+    /// queue
     ///
     /// # Example
     /// ```
@@ -56,21 +56,27 @@ impl PriceLevel {
     /// assert_eq!(price_level.volume, 0);
     /// assert!(price_level.is_empty());
     /// ```
-    pub fn remove(&mut self, order: Order) -> u32 {
+    pub fn remove(&mut self, order: Order) -> Option<Order> {
         self.volume -= order.quantity;
 
-        let pos = self.orders.iter().position(|&o| o == order).unwrap();
-        self.orders.remove(pos);
-        self.volume
+        let pos = self.orders.iter().position(|&o| o == order);
+
+        if let Some(pos) = pos {
+            self.orders.remove(pos)
+        } else {
+            None
+        }
     }
 
-    /// The length of the price level is defined as the length of its internal queue.
+    /// The length of the price level is defined as the length of its internal
+    /// queue.
     #[must_use]
     pub fn len(&self) -> usize {
         self.orders.len()
     }
 
-    /// The price level is considered empty if its internal queue is. In an order book, this condition causes the price level to be deleted.
+    /// The price level is considered empty if its internal queue is. In an
+    /// order book, this condition causes the price level to be deleted.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.orders.is_empty()
@@ -82,7 +88,8 @@ impl PriceLevel {
         self.orders.front()
     }
 
-    /// Search for an exact quantity in the queue and remove the matching order by means of the `remove` method.
+    /// Search for an exact quantity in the queue and remove the matching order
+    /// by means of the `remove` method.
     ///
     /// # Example
     /// ```
@@ -175,7 +182,6 @@ mod tests {
 
         assert_eq!(price_level.len(), 0);
     }
-
 
     #[test]
     fn test_front() {
