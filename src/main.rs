@@ -9,7 +9,7 @@ use orderbook::OrderOutcome;
 
 enum Command {
     New { user_id: u32, symbol: String, price: u32, quantity: u32, side: Side, order_id: u32 },
-    Cancel { user_id: u32, order_id: u32 },
+    Cancel { order_id: u32 },
     Flush,
     Unknown,
 }
@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let (to_writer, writer_from_worker): WriterChannel = mpsc::channel();
 
     // Get the CSV reader
-    let file_path = "input_files/scenario_1.csv";
+    let file_path = "files/input_file.csv";
     let file = File::open(file_path)?;
     let mut reader = ReaderBuilder::new()
         .trim(Trim::All)
@@ -117,7 +117,6 @@ fn parse_record(record: &StringRecord) -> Result<Command, Box<dyn Error + Send +
             order_id: record.get(6).unwrap().parse()?,
         },
         "C" => Command::Cancel {
-            user_id: record.get(1).unwrap().parse()?,
             order_id: record.get(2).unwrap().parse()?,
         },
         _ => Command::Unknown
