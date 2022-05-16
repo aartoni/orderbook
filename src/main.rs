@@ -159,7 +159,8 @@ fn print_outcome(outcome: &OrderOutcome) {
             println!("T, {user_id_buy}, {order_id_buy}, {user_id_sell}, {order_id_sell}, {price}, {quantity}");
             if let Some(side) = side {
                 let side = parse_side_to_csv(*side);
-                let (top_price, volume) = (top_price.unwrap(), volume.unwrap());
+                let top_price = top_price.map_or(String::from("-"), |p| p.to_string());
+                let volume = volume.map_or(String::from("-"), |v| v.to_string());
                 println!("B, {side}, {top_price}, {volume}");
             }
         },
