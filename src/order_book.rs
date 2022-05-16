@@ -226,10 +226,14 @@ impl OrderBook {
             // and volume for the new top of the book
             let (top_price, traded_side, volume) = if top_price.unwrap() == price {
                 let top_price = self.get_best_for_side(!side);
-                let volume =
-                    top_price.map_or(None, |top| Some(self.get_side(!side).get_price_volume(top)));
+                let volume = if let Some(top) = top_price {
+                    let volume = self.get_side(!side).get_price_volume(top);
+                    volume.map(|v| v)
+                } else {
+                    None
+                };
 
-                (top_price, Some(!side), volume.unwrap())
+                (top_price, Some(!side), volume)
             } else {
                 (None, None, None)
             };
