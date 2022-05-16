@@ -117,13 +117,16 @@ impl BookSide {
         self.prices.get(&price).map(|pl| pl.volume)
     }
 
-    /// Return the smallest price level sorted by price if present.
+    /// Return the smallest price level sorted by price if present. The
+    /// complexity for this operation is *O*(1).
     #[must_use]
     pub fn min(&self) -> Option<&PriceLevel> {
         self.prices.peek()
     }
 
-    /// Return the biggest price level sorted by price if present.
+    /// Return the biggest price level sorted by price if present. The
+    /// complexity for this operation is *O*(log *n*), where *n* is the length
+    /// of the price level.
     #[must_use]
     pub fn max(&self) -> Option<&PriceLevel> {
         self.prices.peek_back()
