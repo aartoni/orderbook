@@ -29,7 +29,7 @@ impl BookSide {
     /// bookside.append(order);
     ///
     /// assert_eq!(bookside.max().unwrap().price, 10);
-    /// assert_eq!(bookside.get_price_volume(10), 100);
+    /// assert_eq!(bookside.get_price_volume(10).unwrap(), 100);
     /// ```
     pub fn append(&mut self, order: Order) -> u32 {
         if let Some(price_level) = self.prices.get_mut(&order.price) {
