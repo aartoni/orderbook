@@ -40,7 +40,7 @@ impl PriceLevel {
 
     /// Removes and order from the queue, and update the volume accordingly.
     /// This method has *O*(*n*) complexity, where *n* is the length of the
-    /// queue
+    /// queue.
     ///
     /// # Example
     /// ```
@@ -89,7 +89,8 @@ impl PriceLevel {
     }
 
     /// Search for an exact quantity in the queue and remove the matching order
-    /// by means of the `remove` method.
+    /// by means of the `remove` method. This method has *O*(*n*) complexity,
+    /// where *n* is the length of the queue.
     ///
     /// # Example
     /// ```
