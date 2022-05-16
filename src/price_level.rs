@@ -57,8 +57,6 @@ impl PriceLevel {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
-
     use super::*;
     use crate::order::Side;
 
@@ -77,7 +75,7 @@ mod tests {
         let price = 1;
         let quantity = 1;
         let mut price_level = PriceLevel::new(price);
-        let order = Order::new(1, 1, Side::Ask, Instant::now(), price, quantity);
+        let order = Order::new(1, 1, Side::Ask, price, quantity);
 
         price_level.append(order);
 
@@ -89,8 +87,8 @@ mod tests {
     fn test_remove() {
         let price = 1;
         let mut price_level = PriceLevel::new(price);
-        let first_order = Order::new(1, 1, Side::Ask, Instant::now(), price, 1);
-        let second_order = Order::new(2, 1, Side::Ask, Instant::now(), price, 2);
+        let first_order = Order::new(1, 1, Side::Ask, price, 1);
+        let second_order = Order::new(2, 1, Side::Ask, price, 2);
 
         price_level.append(first_order);
         price_level.append(second_order);
@@ -104,8 +102,8 @@ mod tests {
     fn test_len() {
         let price = 1;
         let mut price_level = PriceLevel::new(price);
-        let first_order = Order::new(1, 1, Side::Ask, Instant::now(), price, 1);
-        let second_order = Order::new(2, 1, Side::Ask, Instant::now(), price, 2);
+        let first_order = Order::new(1, 1, Side::Ask, price, 1);
+        let second_order = Order::new(2, 1, Side::Ask, price, 2);
 
         price_level.append(first_order);
         price_level.append(second_order);
@@ -123,8 +121,8 @@ mod tests {
     fn test_front() {
         let price = 1;
         let mut price_level = PriceLevel::new(price);
-        let first_order = Order::new(1, 1, Side::Ask, Instant::now(), price, 1);
-        let second_order = Order::new(2, 1, Side::Ask, Instant::now(), price, 2);
+        let first_order = Order::new(1, 1, Side::Ask, price, 1);
+        let second_order = Order::new(2, 1, Side::Ask, price, 2);
 
         price_level.append(first_order);
         price_level.append(second_order);
@@ -137,7 +135,7 @@ mod tests {
         let price = 1;
         let mut price_level = PriceLevel::new(price);
 
-        let order = Order::new(1, 1, Side::Ask, Instant::now(), price, 1);
+        let order = Order::new(1, 1, Side::Ask, price, 1);
         price_level.append(order);
 
         let outcome = price_level.trade(1);
@@ -150,8 +148,8 @@ mod tests {
         let price = 1;
         let mut price_level = PriceLevel::new(price);
 
-        let first_order = Order::new(1, 1, Side::Ask, Instant::now(), price, 1);
-        let second_order = Order::new(2, 1, Side::Ask, Instant::now(), price, 1);
+        let first_order = Order::new(1, 1, Side::Ask, price, 1);
+        let second_order = Order::new(2, 1, Side::Ask, price, 1);
 
         price_level.append(first_order);
         price_level.append(second_order);

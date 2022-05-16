@@ -1,4 +1,4 @@
-use std::{time::Instant, ops::Not};
+use std::ops::Not;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Side {
@@ -23,15 +23,14 @@ pub struct Order {
     pub id: u32,
     pub user_id: u32,
     pub side: Side,
-    pub timestamp: Instant,
     pub price: u32,
     pub quantity: u32,
 }
 
 impl Order {
     #[must_use]
-    pub const fn new(id: u32, user_id: u32, side: Side, timestamp: Instant, price: u32, quantity: u32) -> Self {
-        Self { id, user_id, side, timestamp, price, quantity }
+    pub const fn new(id: u32, user_id: u32, side: Side, price: u32, quantity: u32) -> Self {
+        Self { id, user_id, side, price, quantity }
     }
 }
 
@@ -46,13 +45,11 @@ mod tests {
         let side = Side::Ask;
         let quantity = 1;
         let price = 10;
-        let timestamp = Instant::now();
 
-        let order = Order { id, user_id, side, timestamp, price, quantity };
+        let order = Order { id, user_id, side, price, quantity };
 
         assert_eq!(order.id, id);
         assert_eq!(order.side, side);
-        assert_eq!(order.timestamp, timestamp);
         assert_eq!(order.price, price);
         assert_eq!(order.quantity, quantity);
     }

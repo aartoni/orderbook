@@ -1,4 +1,4 @@
-use std::{time::Instant, collections::HashMap};
+use std::collections::HashMap;
 
 use crate::{book_side::BookSide, order::{Order, Side}};
 
@@ -165,7 +165,7 @@ impl OrderBook {
             }
         }
 
-        let order = Order { id: order_id, user_id, price, side, timestamp: Instant::now(), quantity };
+        let order = Order::new(order_id, user_id, side, price, quantity);
 
         if let Some(best) = own_best {
             if comparator(&price, &best) {
@@ -186,8 +186,6 @@ impl OrderBook {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
-
     use super::*;
 
     #[test]
@@ -199,10 +197,10 @@ mod tests {
         let low_ask_price = 2;
         let high_ask_price = 2;
 
-        order_book.append(Order::new(1, 1, Side::Bid, Instant::now(), low_bid_price, 1));
-        order_book.append(Order::new(2, 1, Side::Bid, Instant::now(), high_bid_price, 1));
-        order_book.append(Order::new(3, 1, Side::Ask, Instant::now(), low_ask_price, 1));
-        order_book.append(Order::new(4, 1, Side::Ask, Instant::now(), high_ask_price, 1));
+        order_book.append(Order::new(1, 1, Side::Bid, low_bid_price, 1));
+        order_book.append(Order::new(2, 1, Side::Bid, high_bid_price, 1));
+        order_book.append(Order::new(3, 1, Side::Ask, low_ask_price, 1));
+        order_book.append(Order::new(4, 1, Side::Ask, high_ask_price, 1));
 
         assert_eq!(order_book.best_bid_price().unwrap(), high_bid_price);
         assert_eq!(order_book.best_ask_price().unwrap(), low_ask_price);
@@ -211,8 +209,8 @@ mod tests {
     #[test]
     fn test_append_remove() {
         let mut order_book = OrderBook::new();
-        let bid_order = Order::new(1, 1, Side::Bid, Instant::now(), 1, 1);
-        let ask_order = Order::new(2, 1, Side::Ask, Instant::now(), 1, 1);
+        let bid_order = Order::new(1, 1, Side::Bid, 1, 1);
+        let ask_order = Order::new(2, 1, Side::Ask, 1, 1);
 
         order_book.append(bid_order);
         order_book.append(ask_order);
