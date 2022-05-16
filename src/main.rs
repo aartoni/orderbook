@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     // Build the order books collection
     let mut order_books = HashMap::new();
 
-    // Build a
+    // Build a map to keep track of the symbol for each order
     let mut order_symbols = HashMap::new();
 
     // The main thread will act as the worker thread and
