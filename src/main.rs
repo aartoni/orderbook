@@ -10,15 +10,15 @@ use orderbook::{order::Side, OrderBook};
 /// Representation of the three commands that can be read from the input file
 enum Command {
     New {
-        user_id: u32,
+        user_id: usize,
         symbol: String,
         price: u32,
         quantity: u32,
         side: Side,
-        order_id: u32,
+        order_id: usize,
     },
     Cancel {
-        order_id: u32,
+        order_id: usize,
     },
     Flush,
 }

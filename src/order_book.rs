@@ -8,7 +8,7 @@ use crate::{
 /// The main interface for the program, the order book holds the two book sides
 /// and a map to keep track of each order ID.
 pub struct OrderBook {
-    orders: HashMap<u32, Order>,
+    orders: HashMap<usize, Order>,
     asks: BookSide,
     bids: BookSide,
 }
@@ -19,19 +19,19 @@ pub struct OrderBook {
 pub enum OrderOutcome {
     // Rejected orders require both IDs of the input order
     Rejected {
-        user_id: u32,
-        order_id: u32,
+        user_id: usize,
+        order_id: usize,
     },
     // Appended orders require both IDs of the input order
     Created {
-        user_id: u32,
-        order_id: u32,
+        user_id: usize,
+        order_id: usize,
     },
     // When the top of the book changes the top price and the volume could be unavailable due to
     // the missing price level
     TopOfBook {
-        user_id: u32,
-        order_id: u32,
+        user_id: usize,
+        order_id: usize,
         side: Side,
         top_price: Option<u32>,
         volume: Option<u32>,
@@ -39,12 +39,12 @@ pub enum OrderOutcome {
     // Traded orders need to collect IDs for the buy and sell side, keeping track of which are the
     // input ID saves a few lines of code
     Traded {
-        user_id: u32,
-        order_id: u32,
-        user_id_buy: u32,
-        order_id_buy: u32,
-        user_id_sell: u32,
-        order_id_sell: u32,
+        user_id: usize,
+        order_id: usize,
+        user_id_buy: usize,
+        order_id_buy: usize,
+        user_id_sell: usize,
+        order_id_sell: usize,
         price: u32,
         quantity: u32,
         side: Option<Side>,
@@ -144,7 +144,7 @@ impl OrderBook {
     ///
     /// assert_eq!(order_book.best_ask_price(), None);
     /// ```
-    pub fn cancel_order(&mut self, order_id: u32) -> OrderOutcome {
+    pub fn cancel_order(&mut self, order_id: usize) -> OrderOutcome {
         let order = *self.orders.get(&order_id).unwrap();
         let side = order.side;
 
@@ -205,8 +205,8 @@ impl OrderBook {
         side: Side,
         price: u32,
         quantity: u32,
-        user_id: u32,
-        order_id: u32,
+        user_id: usize,
+        order_id: usize,
     ) -> Option<OrderOutcome> {
         let top_price = self.get_best_for_side(!side);
 
@@ -277,13 +277,13 @@ impl OrderBook {
         side: Side,
         price: u32,
         quantity: u32,
-        user_id: u32,
-        order_id: u32,
+        user_id: usize,
+        order_id: usize,
     ) -> OrderOutcome {
         // Try to trade the current order
-        if let Some(outcome) = self.try_trade(side, price, quantity, user_id, order_id) {
-            return outcome;
-        }
+        //Xif let Some(outcome) = self.try_trade(side, price, quantity, user_id, order_id) {
+        //X    return outcome;
+        //X}
 
         // Get the best for the own and opposite side
         let own_best = self.get_best_for_side(side);

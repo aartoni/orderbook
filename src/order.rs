@@ -33,8 +33,8 @@ impl Not for Side {
 /// order book on each append operation.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Order {
-    pub id: u32,
-    pub user_id: u32,
+    pub id: usize,
+    pub user_id: usize,
     pub side: Side,
     pub price: u32,
     pub quantity: u32,
@@ -44,7 +44,7 @@ impl Order {
     // The constructor is the only explicitly implemented method for the `Order`
     // type.
     #[must_use]
-    pub const fn new(id: u32, user_id: u32, side: Side, price: u32, quantity: u32) -> Self {
+    pub const fn new(id: usize, user_id: usize, side: Side, price: u32, quantity: u32) -> Self {
         Self { id, user_id, side, price, quantity }
     }
 }
