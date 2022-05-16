@@ -7,6 +7,7 @@ use csv::{ReaderBuilder, StringRecord, Trim};
 use orderbook::{OrderBook, order::Side};
 use orderbook::OrderOutcome;
 
+/// Representation of the three commands that can be read from the input file
 enum Command {
     New { user_id: u32, symbol: String, price: u32, quantity: u32, side: Side, order_id: u32 },
     Cancel { order_id: u32 },
@@ -50,6 +51,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         // Start the worker
         writer_to_worker.send(()).unwrap();
 
+        // Keep reading messages from the worker thread until it shuts down
         while let Ok(outcome) = writer_from_worker.recv() {
             writer_to_worker.send(()).unwrap();
 
@@ -73,6 +75,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     while let Ok(command) = from_reader.recv() {
         to_reader.send(()).unwrap();
 
+        // Perform the action required by the command
         let outcome = match command? {
             Command::Flush => {
                 order_books = HashMap::new();
@@ -103,6 +106,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     Ok(())
 }
 
+/// Parse a CSV string record to build an in-memory command representation.
 fn parse_record(record: &StringRecord) -> Result<Command, Box<dyn Error + Send + Sync>> {
     let command = match record.get(0).unwrap() {
         "N" => Command::New {
@@ -122,6 +126,7 @@ fn parse_record(record: &StringRecord) -> Result<Command, Box<dyn Error + Send +
     Ok(command)
 }
 
+/// Converts a side character to its in-memory Side representation.
 fn parse_side_from_csv(csv_side: &str) -> Side {
     if csv_side == "B" {
         Side::Bid
@@ -130,6 +135,7 @@ fn parse_side_from_csv(csv_side: &str) -> Side {
     }
 }
 
+/// Converts a Side enum to a side character for output purposes.
 fn parse_side_to_csv(side: Side) -> &'static str {
     if side == Side::Bid {
         "B"
@@ -138,6 +144,7 @@ fn parse_side_to_csv(side: Side) -> &'static str {
     }
 }
 
+/// Write the completion message to stdout. The message depends on the outcome.
 fn print_outcome(outcome: &OrderOutcome) {
     match outcome {
         OrderOutcome::Created { user_id, order_id } => {
