@@ -1,0 +1,30 @@
+# Bonus: Trade scenarios
+# This section is optional. Make sure your program as trading turned on for this
+
+#name: scenario 13
+#descr: balanced book, limit above best ask
+
+A, 1, 1
+B, B, 10, 100
+A, 1, 2
+B, S, 12, 100
+A, 2, 101
+A, 2, 102
+B, S, 11, 100
+A, 1, 103
+T, 1, 103, 2, 102, 11, 100
+B, S, 12, 100
+
+#name: scenario 14
+#descr: shallow ask
+
+A, 1, 1
+B, B, 10, 100
+A, 2, 101
+A, 2, 102
+B, S, 11, 100
+A, 1, 2
+T, 1, 2, 2, 102, 11, 100
+B, S, -, -
+A, 2, 103
+B, S, 11, 100
