@@ -277,7 +277,7 @@ mod tests {
         order_book.submit_order(Side::Bid, 2, 1, 1, 102);
         let outcome = order_book.submit_order(Side::Ask, 2, 1, 2, 1);
 
-        assert_eq!(outcome, OrderOutcome::Traded { user_id: 2, order_id: 1, user_id_buy: 1, order_id_buy: 102, user_id_sell: 2, order_id_sell: 1, price: 2, quantity: 1, side: Some(Side::Ask), top_price: Some(1), volume: Some(1) });
+        assert_eq!(outcome, OrderOutcome::Traded { user_id: 2, order_id: 1, user_id_buy: 1, order_id_buy: 102, user_id_sell: 2, order_id_sell: 1, price: 2, quantity: 1, side: None, top_price: None, volume: None });
         assert_eq!(order_book.orders.get(&1), None);
     }
 }
