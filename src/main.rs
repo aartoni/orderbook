@@ -11,7 +11,6 @@ enum Command {
     New { user_id: u32, symbol: String, price: u32, quantity: u32, side: Side, order_id: u32 },
     Cancel { order_id: u32 },
     Flush,
-    Unknown,
 }
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -89,8 +88,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                 let symbol = order_symbols.get(&order_id).unwrap();
                 let order_book = order_books.get_mut(symbol).unwrap();
                 Some(order_book.cancel_order(order_id))
-            }
-            _ => panic!("Unknown command")
+            },
         };
 
         from_writer.recv().unwrap();
@@ -107,7 +105,6 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 fn parse_record(record: &StringRecord) -> Result<Command, Box<dyn Error + Send + Sync>> {
     let command = match record.get(0).unwrap() {
-        "F" => Command::Flush,
         "N" => Command::New {
             user_id: record.get(1).unwrap().parse()?,
             symbol: record.get(2).unwrap().to_string(),
@@ -119,7 +116,7 @@ fn parse_record(record: &StringRecord) -> Result<Command, Box<dyn Error + Send +
         "C" => Command::Cancel {
             order_id: record.get(2).unwrap().parse()?,
         },
-        _ => Command::Unknown
+        _ => Command::Flush,
     };
 
     Ok(command)
@@ -157,6 +154,14 @@ fn print_outcome(outcome: &OrderOutcome) {
         OrderOutcome::Rejected { user_id, order_id } => {
             println!("R, {user_id}, {order_id}");
         }
-        _ => println!("Unknown output format"),
+        OrderOutcome::Traded { user_id, order_id, user_id_buy, order_id_buy, user_id_sell, order_id_sell, price, quantity, side, top_price, volume } => {
+            println!("A, {user_id}, {order_id}");
+            println!("T, {user_id_buy}, {order_id_buy}, {user_id_sell}, {order_id_sell}, {price}, {quantity}");
+            if let Some(side) = side {
+                let side = parse_side_to_csv(*side);
+                let (top_price, volume) = (top_price.unwrap(), volume.unwrap());
+                println!("B, {side}, {top_price}, {volume}");
+            }
+        },
     };
 }

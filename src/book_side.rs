@@ -50,6 +50,7 @@ impl BookSide {
         outcome
     }
 
+    #[must_use]
     pub fn get_price_volume(&self, price: u32) -> u32 {
         self.prices.get(&price).unwrap().volume
     }
