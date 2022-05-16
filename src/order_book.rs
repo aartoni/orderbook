@@ -126,9 +126,9 @@ impl OrderBook {
 
             // Set buy and sell IDs according to the execution side
             let ids = if order.side == Side::Ask {
-                (order.user_id, order.id, user_id, order_id)
-            } else {
                 (user_id, order_id, order.user_id, order.id)
+            } else {
+                (order.user_id, order.id, user_id, order_id)
             };
 
             let (user_id_buy, order_id_buy, user_id_sell, order_id_sell) = ids;
