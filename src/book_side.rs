@@ -16,7 +16,7 @@ impl BookSide {
 
     /// Append an order to the corresponding price level, and returns its
     /// current volume. The complexity for this operation is *O*(log *n*), where
-    /// *n* is the length of the price level.
+    /// *n* is the size of the tree.
     ///
     /// # Example
     /// ```
@@ -43,8 +43,8 @@ impl BookSide {
     }
 
     /// Remove an order from the corresponding price level, and returns it. The
-    /// complexity for this operation is *O*(*n*), where *n* is the length of
-    /// the price level.
+    /// complexity for this operation is *O*(log *n* + *m*), where *n* is the
+    /// size of the tree and *m* is the length of the price level.
     ///
     /// # Example
     /// ```
@@ -60,13 +60,16 @@ impl BookSide {
     /// assert_eq!(bookside.max(), None);
     /// ```
     pub fn remove(&mut self, order: Order) -> Option<Order> {
+        // Searching a red-black tree is O(log n)
         let price_level = self.prices.get_mut(&order.price);
 
         if price_level == None {
             return None;
         }
 
+        assert_ne!(price_level, None);
         let price_level = price_level.unwrap();
+        // Removing from a queue is O(m)
         let removed = price_level.remove(order);
 
         if price_level.is_empty() {
@@ -77,8 +80,8 @@ impl BookSide {
     }
 
     /// Trade an order from the corresponding price level, and returns it. The
-    /// complexity for this operation is *O*(*n*), where *n* is the length of
-    /// the price level.
+    /// complexity for this operation is *O*(log *n* + *m*), where *n* is the
+    /// size of the tree and *m* is the length of the price level.
     ///
     /// # Example
     /// ```
@@ -97,6 +100,7 @@ impl BookSide {
         let mut outcome = None;
 
         // Search for a matching price level
+        // Searching a red-black tree is O(log n)
         if let Some(price_level) = self.prices.get_mut(&price) {
             // Price level found, attempt to trade on it
             outcome = price_level.trade(quantity);
@@ -110,8 +114,8 @@ impl BookSide {
     }
 
     /// Return the volume of the price level matching the provided price. The
-    /// complexity for this operation is *O*(log *n*), where *n* is the length
-    /// of the price level.
+    /// complexity for this operation is *O*(log *n*), where *n* is the size of
+    /// the tree.
     #[must_use]
     pub fn get_price_volume(&self, price: u32) -> Option<u32> {
         self.prices.get(&price).map(|pl| pl.volume)

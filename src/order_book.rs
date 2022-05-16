@@ -5,22 +5,30 @@ use crate::{
     order::{Order, Side},
 };
 
+/// The main interface for the program, the order book holds the two book sides
+/// and a map to keep track of each order ID.
 pub struct OrderBook {
     orders: HashMap<u32, Order>,
     asks: BookSide,
     bids: BookSide,
 }
 
+// Possible outcomes for an order execution, these outcomes holds every
+// information needed for producing the final output.
 #[derive(Debug, PartialEq)]
 pub enum OrderOutcome {
+    // Rejected orders require both IDs of the input order
     Rejected {
         user_id: u32,
         order_id: u32,
     },
+    // Appended orders require both IDs of the input order
     Created {
         user_id: u32,
         order_id: u32,
     },
+    // When the top of the book changes the top price and the volume could be unavailable due to
+    // the missing price level
     TopOfBook {
         user_id: u32,
         order_id: u32,
@@ -28,6 +36,8 @@ pub enum OrderOutcome {
         top_price: Option<u32>,
         volume: Option<u32>,
     },
+    // Traded orders need to collect IDs for the buy and sell side, keeping track of which are the
+    // input ID saves a few lines of code
     Traded {
         user_id: u32,
         order_id: u32,
@@ -53,24 +63,32 @@ impl OrderBook {
         }
     }
 
+    /// Get the best price for the ask side. This operation can be performed in
+    /// *O*(1).
     #[must_use]
     pub fn best_ask_price(&self) -> Option<u32> {
-        if let Some(best_ask_price) = self.asks.min() {
-            return Some(best_ask_price.price);
-        }
-
-        None
+        self.asks.min().map_or(None, |bap| Some(bap.price))
     }
 
+    /// Get the best price for the bid side. This operation can be performed in
+    /// *O*(log *n*) where *n* is the size of the tree.
     #[must_use]
     pub fn best_bid_price(&self) -> Option<u32> {
-        if let Some(best_bid_price) = self.bids.max() {
-            return Some(best_bid_price.price);
-        }
-
-        None
+        self.bids.max().map_or(None, |bbp| Some(bbp.price))
     }
 
+    /// Get the best price for the specified side. This operation can be
+    /// performed in *O*(log *n*) where *n* is the size of the tree.
+    fn get_best_for_side(&self, side: Side) -> Option<u32> {
+        if side == Side::Ask {
+            self.best_ask_price()
+        } else {
+            self.best_bid_price()
+        }
+    }
+
+    // Provide a mutable reference for the specified side. This method comes in
+    // handy each time a function has to be applied to whichever side.
     fn get_side_mut(&mut self, side: Side) -> &mut BookSide {
         if side == Side::Ask {
             &mut self.asks
@@ -79,6 +97,8 @@ impl OrderBook {
         }
     }
 
+    /// Provide a reference for the specified side. This method comes in handy
+    /// each time a function has to be applied to whichever side.
     fn get_side(&self, side: Side) -> &BookSide {
         if side == Side::Ask {
             &self.asks
@@ -87,17 +107,43 @@ impl OrderBook {
         }
     }
 
+    /// Append an order to the corresponding book side, and returns its current
+    /// price and volume. The complexity for this operation is *O*(log *n*),
+    /// where *n* is the size of the book side tree.
     fn append(&mut self, order: Order) -> (Option<u32>, Option<u32>) {
+        // Insertion into an HashMap is O(1)
         self.orders.insert(order.id, order);
+        // Append into book side is O(log n)
         self.get_side_mut(order.side).append(order);
 
+        // Searching the top is O(log n) with the same n (+1)
         let top = self.get_best_for_side(order.side);
+        // Searching a red-black tree is the same O(log n)
+        let volume = top.map_or(None, |t| self.get_side(order.side).get_price_volume(t));
 
-        let volume = top.map(|top| self.get_side(order.side).get_price_volume(top));
-
-        (self.get_best_for_side(order.side), volume.unwrap())
+        (top, volume)
     }
 
+    /// Append an order to the corresponding book side, and returns the outcome.
+    /// The complexity for this operation is *O*(log *n* + *m*), where *n* is
+    /// the size of the tree and *m* is the length of the price level.
+    ///
+    /// # Panics
+    /// This method assumes that the order ID is already in the order book and
+    /// it will always panic if the condition is not met.
+    ///
+    /// # Example
+    /// ```
+    /// use orderbook::order_book::OrderBook;
+    /// use orderbook::order::{Order, Side};
+    ///
+    /// let mut order_book = OrderBook::new();
+    ///
+    /// order_book.submit_order(Side::Ask, 10, 100, 1, 1);
+    /// order_book.cancel_order(1);
+    ///
+    /// assert_eq!(order_book.best_ask_price(), None);
+    /// ```
     pub fn cancel_order(&mut self, order_id: u32) -> OrderOutcome {
         let order = *self.orders.get(&order_id).unwrap();
         let side = order.side;
@@ -111,9 +157,7 @@ impl OrderBook {
 
         let top_price = self.get_best_for_side(side);
 
-        let volume = top_price
-            .map(|top| self.get_side(order.side).get_price_volume(top))
-            .unwrap();
+        let volume = top_price.map_or(None, |top| self.get_side(order.side).get_price_volume(top));
 
         OrderOutcome::TopOfBook {
             user_id: order.user_id,
@@ -124,11 +168,19 @@ impl OrderBook {
         }
     }
 
-    fn remove(&mut self, order: Order) {
+    /// Remove an order from the corresponding side and return it. The
+    /// complexity for this operation is *O*(log *n* + *m*), where *n* is the
+    /// size of the order book tree and *m* is the length of
+    /// the price level.
+    fn remove(&mut self, order: Order) -> Option<Order> {
+        // Deletion from an HashMap is O(1)
         self.orders.remove(&order.id);
-        self.get_side_mut(order.side).remove(order);
+        // Deletion from a book side is O(n)
+        self.get_side_mut(order.side).remove(order)
     }
 
+    /// Return a comparator that allow to determine if a price is better or
+    /// worse than the top of the book on a side.
     fn get_cmp_for_side(side: Side) -> fn(&u32, &u32) -> bool {
         if side == Side::Ask {
             PartialOrd::le
@@ -137,18 +189,17 @@ impl OrderBook {
         }
     }
 
-    fn get_best_for_side(&self, side: Side) -> Option<u32> {
-        if side == Side::Ask {
-            self.best_ask_price()
-        } else {
-            self.best_bid_price()
-        }
-    }
-
+    /// Perform a trade on a side for the specified price and quantity. The
+    /// complexity for this operation is *O*(log *n* + *m*) where *n* is the
+    /// size of the order book tree and *m* is the length of the price level.
     fn trade(&mut self, side: Side, price: u32, quantity: u32) -> Option<Order> {
         self.get_side_mut(!side).trade(price, quantity)
     }
 
+    /// Try to execute a trade and return `None` in case it couldn't be
+    /// performed. The complexity for this operation is *O*(log *n* + *m*) where
+    /// *n* is the size of the order book tree and *m* is the length of the
+    /// price level.
     fn try_trade(
         &mut self,
         side: Side,
@@ -171,6 +222,8 @@ impl OrderBook {
                 (order.user_id, order.id, user_id, order_id)
             };
 
+            // Check whether the top of the book is changed, if so assign a top price, side
+            // and volume for the new top of the book
             let (top_price, traded_side, volume) = if top_price.unwrap() == price {
                 let top_price = self.get_best_for_side(!side);
                 let volume =
@@ -181,6 +234,7 @@ impl OrderBook {
                 (None, None, None)
             };
 
+            // Destructure IDs and return the result
             let (user_id_buy, order_id_buy, user_id_sell, order_id_sell) = ids;
             return Some(OrderOutcome::Traded {
                 user_id,
@@ -200,6 +254,20 @@ impl OrderBook {
         None
     }
 
+    /// Append an order to the corresponding book side, and returns the outcome.
+    /// The complexity for this operation is *O*(log *n* + *m*), where *n* is
+    /// the size of the tree and *m* is the length of the price level.
+    ///
+    /// # Example
+    /// ```
+    /// use orderbook::order_book::OrderBook;
+    /// use orderbook::order::{Order, Side};
+    ///
+    /// let mut order_book = OrderBook::new();
+    /// order_book.submit_order(Side::Ask, 10, 100, 1, 1);
+    ///
+    /// assert_eq!(order_book.best_ask_price().unwrap(), 10);
+    /// ```
     pub fn submit_order(
         &mut self,
         side: Side,
