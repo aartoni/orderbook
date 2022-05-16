@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{book_side::BookSide, order::{Order, Side}};
+use crate::{
+    book_side::BookSide,
+    order::{Order, Side},
+};
 
 pub struct OrderBook {
     orders: HashMap<u32, Order>,
@@ -10,22 +13,50 @@ pub struct OrderBook {
 
 #[derive(Debug, PartialEq)]
 pub enum OrderOutcome {
-    Rejected { user_id: u32, order_id: u32 },
-    Created { user_id: u32, order_id: u32 },
-    TopOfBook { user_id: u32, order_id: u32, side: Side, top_price: Option<u32>, volume: Option<u32> },
-    Traded { user_id: u32, order_id: u32, user_id_buy: u32, order_id_buy: u32, user_id_sell: u32, order_id_sell: u32, price: u32, quantity: u32, side: Option<Side>, top_price: Option<u32>, volume: Option<u32> },
+    Rejected {
+        user_id: u32,
+        order_id: u32,
+    },
+    Created {
+        user_id: u32,
+        order_id: u32,
+    },
+    TopOfBook {
+        user_id: u32,
+        order_id: u32,
+        side: Side,
+        top_price: Option<u32>,
+        volume: Option<u32>,
+    },
+    Traded {
+        user_id: u32,
+        order_id: u32,
+        user_id_buy: u32,
+        order_id_buy: u32,
+        user_id_sell: u32,
+        order_id_sell: u32,
+        price: u32,
+        quantity: u32,
+        side: Option<Side>,
+        top_price: Option<u32>,
+        volume: Option<u32>,
+    },
 }
 
 impl OrderBook {
     #[must_use]
     pub fn new() -> Self {
-        Self { orders: HashMap::new(), asks: BookSide::new(), bids: BookSide::new() }
+        Self {
+            orders: HashMap::new(),
+            asks: BookSide::new(),
+            bids: BookSide::new(),
+        }
     }
 
     #[must_use]
     pub fn best_ask_price(&self) -> Option<u32> {
         if let Some(best_ask_price) = self.asks.min() {
-            return Some(best_ask_price.price)
+            return Some(best_ask_price.price);
         }
 
         None
@@ -34,7 +65,7 @@ impl OrderBook {
     #[must_use]
     pub fn best_bid_price(&self) -> Option<u32> {
         if let Some(best_bid_price) = self.bids.max() {
-            return Some(best_bid_price.price)
+            return Some(best_bid_price.price);
         }
 
         None
@@ -64,7 +95,7 @@ impl OrderBook {
 
         let volume = top.map(|top| self.get_side(order.side).get_price_volume(top));
 
-        (self.get_best_for_side(order.side), volume)
+        (self.get_best_for_side(order.side), volume.unwrap())
     }
 
     pub fn cancel_order(&mut self, order_id: u32) -> OrderOutcome {
@@ -80,9 +111,17 @@ impl OrderBook {
 
         let top_price = self.get_best_for_side(side);
 
-        let volume = top_price.map(|top| self.get_side(order.side).get_price_volume(top));
+        let volume = top_price
+            .map(|top| self.get_side(order.side).get_price_volume(top))
+            .unwrap();
 
-        OrderOutcome::TopOfBook { user_id: order.user_id, order_id, side, top_price, volume }
+        OrderOutcome::TopOfBook {
+            user_id: order.user_id,
+            order_id,
+            side,
+            top_price,
+            volume,
+        }
     }
 
     fn remove(&mut self, order: Order) {
@@ -110,7 +149,14 @@ impl OrderBook {
         self.get_side_mut(!side).trade(price, quantity)
     }
 
-    fn try_trade(&mut self, side: Side, price: u32, quantity: u32, user_id: u32, order_id: u32) -> Option<OrderOutcome> {
+    fn try_trade(
+        &mut self,
+        side: Side,
+        price: u32,
+        quantity: u32,
+        user_id: u32,
+        order_id: u32,
+    ) -> Option<OrderOutcome> {
         let top_price = self.get_best_for_side(!side);
 
         // Check whether there is a matching opposite order
@@ -127,9 +173,10 @@ impl OrderBook {
 
             let (top_price, traded_side, volume) = if top_price.unwrap() == price {
                 let top_price = self.get_best_for_side(!side);
-                let volume = top_price.map_or(None, |top| Some(self.get_side(!side).get_price_volume(top)));
+                let volume =
+                    top_price.map_or(None, |top| Some(self.get_side(!side).get_price_volume(top)));
 
-                (top_price, Some(!side), volume)
+                (top_price, Some(!side), volume.unwrap())
             } else {
                 (None, None, None)
             };
@@ -146,14 +193,21 @@ impl OrderBook {
                 quantity,
                 side: traded_side,
                 top_price,
-                volume
+                volume,
             });
         }
 
         None
     }
 
-    pub fn submit_order(&mut self, side: Side, price: u32, quantity: u32, user_id: u32, order_id: u32) -> OrderOutcome {
+    pub fn submit_order(
+        &mut self,
+        side: Side,
+        price: u32,
+        quantity: u32,
+        user_id: u32,
+        order_id: u32,
+    ) -> OrderOutcome {
         // Try to trade the current order
         if let Some(outcome) = self.try_trade(side, price, quantity, user_id, order_id) {
             return outcome;
@@ -242,8 +296,26 @@ mod tests {
         let bid_outcome = order_book.submit_order(Side::Bid, bid_price, 1, 1, 1);
         let ask_outcome = order_book.submit_order(Side::Ask, ask_price, 2, 1, 101);
 
-        assert_eq!(bid_outcome, OrderOutcome::TopOfBook { user_id: 1, order_id: 1, side: Side::Bid, top_price: Some(bid_price), volume: Some(1) });
-        assert_eq!(ask_outcome, OrderOutcome::TopOfBook { user_id: 1, order_id: 101, side: Side::Ask, top_price: Some(ask_price), volume: Some(2) });
+        assert_eq!(
+            bid_outcome,
+            OrderOutcome::TopOfBook {
+                user_id: 1,
+                order_id: 1,
+                side: Side::Bid,
+                top_price: Some(bid_price),
+                volume: Some(1)
+            }
+        );
+        assert_eq!(
+            ask_outcome,
+            OrderOutcome::TopOfBook {
+                user_id: 1,
+                order_id: 101,
+                side: Side::Ask,
+                top_price: Some(ask_price),
+                volume: Some(2)
+            }
+        );
 
         assert_eq!(order_book.best_bid_price().unwrap(), bid_price);
         assert_eq!(order_book.best_ask_price().unwrap(), ask_price);
@@ -251,8 +323,14 @@ mod tests {
         let bid_outcome = order_book.submit_order(Side::Bid, 1, 1, 1, 2);
         let ask_outcome = order_book.submit_order(Side::Ask, 4, 2, 1, 102);
 
-        assert_eq!(bid_outcome, OrderOutcome::Created { user_id: 1, order_id: 2 });
-        assert_eq!(ask_outcome, OrderOutcome::Created { user_id: 1, order_id: 102 });
+        assert_eq!(
+            bid_outcome,
+            OrderOutcome::Created { user_id: 1, order_id: 2 }
+        );
+        assert_eq!(
+            ask_outcome,
+            OrderOutcome::Created { user_id: 1, order_id: 102 }
+        );
 
         assert_eq!(order_book.best_bid_price().unwrap(), bid_price);
         assert_eq!(order_book.best_ask_price().unwrap(), ask_price);
@@ -265,8 +343,20 @@ mod tests {
         let bid_outcome = order_book.submit_order(Side::Bid, 2, 2, 1, 101);
         let ask_outcome = order_book.submit_order(Side::Ask, 1, 1, 1, 1);
 
-        assert_eq!(bid_outcome, OrderOutcome::TopOfBook { user_id: 1, order_id: 101, side: Side::Bid, top_price: Some(2), volume: Some(2) });
-        assert_eq!(ask_outcome, OrderOutcome::Rejected { user_id: 1, order_id: 1 });
+        assert_eq!(
+            bid_outcome,
+            OrderOutcome::TopOfBook {
+                user_id: 1,
+                order_id: 101,
+                side: Side::Bid,
+                top_price: Some(2),
+                volume: Some(2)
+            }
+        );
+        assert_eq!(
+            ask_outcome,
+            OrderOutcome::Rejected { user_id: 1, order_id: 1 }
+        );
     }
 
     #[test]
@@ -277,7 +367,22 @@ mod tests {
         order_book.submit_order(Side::Bid, 2, 1, 1, 102);
         let outcome = order_book.submit_order(Side::Ask, 2, 1, 2, 1);
 
-        assert_eq!(outcome, OrderOutcome::Traded { user_id: 2, order_id: 1, user_id_buy: 1, order_id_buy: 102, user_id_sell: 2, order_id_sell: 1, price: 2, quantity: 1, side: None, top_price: None, volume: None });
+        assert_eq!(
+            outcome,
+            OrderOutcome::Traded {
+                user_id: 2,
+                order_id: 1,
+                user_id_buy: 1,
+                order_id_buy: 102,
+                user_id_sell: 2,
+                order_id_sell: 1,
+                price: 2,
+                quantity: 1,
+                side: None,
+                top_price: None,
+                volume: None
+            }
+        );
         assert_eq!(order_book.orders.get(&1), None);
     }
 }
