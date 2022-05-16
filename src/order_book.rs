@@ -74,23 +74,23 @@ impl OrderBook {
     pub fn cancel_order(&mut self, order_id: u32) -> OrderOutcome {
         let order = *self.orders.get(&order_id).unwrap();
         let side = order.side;
-        let top_before = self.get_best_for_side(side);
-        self.remove(order);
-        let top_after = self.get_best_for_side(side);
 
-        let volume = if let Some(top) = top_after {
+        let top = self.get_best_for_side(side).unwrap();
+        self.remove(order);
+
+        if top != order.price {
+            return OrderOutcome::Created { user_id: order.user_id, order_id };
+        }
+
+        let top_price = self.get_best_for_side(side);
+
+        let volume = if let Some(top) = top_price {
             Some(self.get_side_mut(order.side).get_price_volume(top))
         } else {
             None
         };
 
-        let comparator = self.get_cmp_for_side(side);
-
-        if top_after == None || comparator(&top_before.unwrap(), &top_after.unwrap()) {
-            return OrderOutcome::TopOfBook { user_id: order.user_id, order_id, side, top_price: top_after, volume };
-        }
-
-        OrderOutcome::Created { user_id: order.user_id, order_id }
+        return OrderOutcome::TopOfBook { user_id: order.user_id, order_id, side, top_price, volume };
     }
 
     fn remove(&mut self, order: Order) -> u32 {
