@@ -21,14 +21,12 @@ impl PriceLevel {
         self.volume
     }
 
-    pub fn remove(&mut self, order: Order) -> Option<Order> {
+    pub fn remove(&mut self, order: Order) -> u32 {
         self.volume -= order.quantity;
 
-        if let Some(pos) = self.orders.iter().position(|&o| o == order) {
-            return self.orders.remove(pos);
-        }
-
-        None
+        let pos = self.orders.iter().position(|&o| o == order).unwrap();
+        self.orders.remove(pos);
+        self.volume
     }
 
     #[must_use]
@@ -45,10 +43,11 @@ impl PriceLevel {
         for order in &self.orders {
             if order.quantity == quantity {
                 // Matching order found
-                // Note: the following two lines are required to avoid
+                // Note: the target var declaration is required to avoid
                 // the annoying mutable borrow reservaton conflict
                 let target = *order;
-                return self.remove(target)
+                self.remove(target);
+                return Some(target);
             }
         }
 

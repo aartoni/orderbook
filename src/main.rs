@@ -59,12 +59,15 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                 continue;
             }
 
-            print_outcome(outcome.unwrap());
+            print_outcome(&outcome.unwrap());
         }
     });
 
     // Build the order books collection
     let mut order_books = HashMap::new();
+
+    // Build a
+    let mut order_symbols = HashMap::new();
 
     // The main thread will act as the worker thread and
     // compute commands received from the reader
@@ -77,9 +80,16 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                 None
             },
             Command::New {user_id, order_id, side, price, quantity, symbol} => {
+                let symbol_clone = symbol.clone();
                 let order_book = order_books.entry(symbol).or_insert_with(OrderBook::new);
+                order_symbols.insert(order_id, symbol_clone);
                 Some(order_book.submit_order(side, price, quantity, user_id, order_id))
             },
+            Command::Cancel { order_id, .. } => {
+                let symbol = order_symbols.get(&order_id).unwrap();
+                let order_book = order_books.get_mut(symbol).unwrap();
+                Some(order_book.cancel_order(order_id))
+            }
             _ => panic!("Unknown command")
         };
 
@@ -132,7 +142,7 @@ fn parse_side_to_csv(side: Side) -> &'static str {
     }
 }
 
-fn print_outcome(outcome: OrderOutcome) {
+fn print_outcome(outcome: &OrderOutcome) {
     match outcome {
         OrderOutcome::Created { user_id, order_id } => {
             println!("A, {user_id}, {order_id}");
@@ -140,12 +150,9 @@ fn print_outcome(outcome: OrderOutcome) {
         OrderOutcome::TopOfBook { user_id, order_id, side, top_price, volume } => {
             println!("A, {user_id}, {order_id}");
 
-            let side = parse_side_to_csv(side);
-            let top_price = if let Some(price) = top_price {
-                price.to_string()
-            } else {
-                String::from("-")
-            };
+            let side = parse_side_to_csv(*side);
+            let top_price = top_price.map_or_else(|| String::from("-"), |price| price.to_string());
+            let volume = volume.map_or_else(|| String::from("-"), |price| price.to_string());
             println!("B, {side}, {top_price}, {volume}");
         },
         OrderOutcome::Rejected { user_id, order_id } => {
